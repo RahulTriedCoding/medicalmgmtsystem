@@ -1,0 +1,94 @@
+[
+  {
+    "id": "f9217c40-75a4-4a74-a31c-c12113d9392b",
+    "invoice_number": "INV-20251113-CDB2C6E5",
+    "patient_id": "d01c4982-5825-4b5e-91a4-3fec1dd4a704",
+    "due_date": "2025-11-13T00:00:00.000Z",
+    "status": "overdue",
+    "notes": "test",
+    "total": 100,
+    "balance": 100,
+    "created_at": "2025-11-13T14:10:08.438Z",
+    "updated_at": "2025-11-13T14:10:08.438Z",
+    "line_items": [
+      {
+        "id": "d2db3bdd-6e06-4b3c-935d-718c41c8b34d",
+        "description": "stomach ache",
+        "quantity": 1,
+        "unit_price": 100
+      }
+    ],
+    "payments": []
+  },
+  {
+    "id": "db434bde-6b3c-4630-abde-41d3713f70ff",
+    "invoice_number": "INV-20251113-36D564CD",
+    "patient_id": "e78f4cdd-1da3-49fa-968a-054c776f3b36",
+    "due_date": "2025-11-17T00:00:00.000Z",
+    "status": "pending",
+    "notes": null,
+    "total": 400,
+    "balance": 400,
+    "created_at": "2025-11-13T14:05:20.384Z",
+    "updated_at": "2025-11-13T14:05:20.384Z",
+    "line_items": [
+      {
+        "id": "636783d5-cfd4-4875-b456-6aec3dfa0487",
+        "description": "fever",
+        "quantity": 2,
+        "unit_price": 200
+      }
+    ],
+    "payments": []
+  },
+  {
+    "id": "bc0c4ac3-095d-40e7-a973-01a43a04f7a0",
+    "invoice_number": "INV-20251113-043DF0ED",
+    "patient_id": "fe206159-6d1d-4804-b720-d5b6522d7f82",
+    "due_date": "2025-11-14T00:00:00.000Z",
+    "status": "pending",
+    "notes": "test",
+    "total": 400,
+    "balance": 400,
+    "created_at": "2025-11-13T14:04:26.622Z",
+    "updated_at": "2025-11-13T14:04:26.622Z",
+    "line_items": [
+      {
+        "id": "bc50fcbd-a9b8-49c7-9960-fede2f842453",
+        "description": "arthritis medicine",
+        "quantity": 2,
+        "unit_price": 200
+      }
+    ],
+    "payments": []
+  },
+  {
+    "id": "e3bfae1a-cf30-4d83-a617-d87e45a0b23e",
+    "invoice_number": "INV-20251113-7271992F",
+    "patient_id": "b7512e41-d6e5-4cd5-9571-4bd2030a4f91",
+    "due_date": "2025-11-15T00:00:00.000Z",
+    "status": "paid",
+    "notes": "test",
+    "total": 300,
+    "balance": 0,
+    "created_at": "2025-11-13T14:03:04.599Z",
+    "updated_at": "2025-11-13T14:03:39.422Z",
+    "line_items": [
+      {
+        "id": "c2c87b65-b988-4d51-80ef-31cef3010ec8",
+        "description": "test",
+        "quantity": 3,
+        "unit_price": 100
+      }
+    ],
+    "payments": [
+      {
+        "id": "9a397737-1283-45fa-a51d-17c51eb3a27e",
+        "amount": 300,
+        "method": "cash",
+        "reference": "test",
+        "paid_at": "2025-11-14T00:00:00.000Z"
+      }
+    ]
+  }
+]

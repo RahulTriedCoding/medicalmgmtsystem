@@ -1,0 +1,12 @@
+{
+  "clinic_name": "Acme Medical Center",
+  "clinic_email": "hello@example.com",
+  "clinic_phone": "+1 (555) 123-4567",
+  "clinic_address": "123 Main Street, Springfield, USA",
+  "currency": "USD",
+  "timezone": "UTC",
+  "default_appointment_duration": 30,
+  "enable_email_notifications": true,
+  "enable_sms_notifications": false,
+  "billing_notes": ""
+}

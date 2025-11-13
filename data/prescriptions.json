@@ -1,0 +1,32 @@
+[
+  {
+    "id": "a8517727-8b81-4756-8910-43485fb2197d",
+    "created_at": "2025-11-13T13:37:48.590Z",
+    "patient_id": "b7512e41-d6e5-4cd5-9571-4bd2030a4f91",
+    "doctor_id": "a4866c4b-2038-497a-8edd-43d224ad67fa",
+    "notes": "test",
+    "lines": [
+      {
+        "item_id": "paracetamol-500mg",
+        "dosage": "1",
+        "quantity": 1,
+        "name": "Paracetamol 500mg"
+      }
+    ]
+  },
+  {
+    "id": "b3b6b08f-a896-4921-9906-6dbc660b1b30",
+    "created_at": "2025-11-13T13:37:10.585Z",
+    "patient_id": "fe206159-6d1d-4804-b720-d5b6522d7f82",
+    "doctor_id": "a4866c4b-2038-497a-8edd-43d224ad67fa",
+    "notes": "test",
+    "lines": [
+      {
+        "item_id": "syringe-5ml",
+        "dosage": "1",
+        "quantity": 1,
+        "name": "Syringe 5ml"
+      }
+    ]
+  }
+]

@@ -1,0 +1,178 @@
+"use client";
+
+import { useState } from "react";
+import { toast } from "sonner";
+import type { AppSettings } from "@/lib/settings/store";
+
+type Props = {
+  initial: AppSettings;
+};
+
+export function SettingsForm({ initial }: Props) {
+  const [saving, setSaving] = useState(false);
+  const [values, setValues] = useState(initial);
+
+  async function onSubmit(event: React.FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    const form = event.currentTarget;
+    const data = new FormData(form);
+
+    const payload = {
+      clinic_name: String(data.get("clinic_name") || "").trim(),
+      clinic_email: String(data.get("clinic_email") || "").trim(),
+      clinic_phone: String(data.get("clinic_phone") || "").trim(),
+      clinic_address: String(data.get("clinic_address") || "").trim(),
+      currency: String(data.get("currency") || "").trim(),
+      timezone: String(data.get("timezone") || "").trim(),
+      default_appointment_duration: Number(data.get("default_appointment_duration") || 30),
+      enable_email_notifications: data.get("enable_email_notifications") === "on",
+      enable_sms_notifications: data.get("enable_sms_notifications") === "on",
+      billing_notes: String(data.get("billing_notes") || ""),
+    };
+
+    setSaving(true);
+    const res = await fetch("/api/settings", {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+    });
+    setSaving(false);
+
+    if (!res.ok) {
+      const json = await res.json().catch(() => ({}));
+      toast.error(json?.error ?? "Failed to save settings");
+      return;
+    }
+
+    const json = await res.json().catch(() => null);
+    if (json?.settings) {
+      setValues(json.settings as AppSettings);
+    }
+    toast.success("Settings updated");
+  }
+
+  return (
+    <form className="space-y-6" onSubmit={onSubmit}>
+      <section className="rounded-lg border p-4 space-y-3">
+        <h2 className="text-lg font-semibold">Clinic profile</h2>
+        <div className="grid gap-3 md:grid-cols-2">
+          <label className="text-sm">
+            Clinic name
+            <input
+              name="clinic_name"
+              defaultValue={values.clinic_name}
+              className="mt-1 w-full rounded-md border px-3 py-2 text-sm"
+              required
+            />
+          </label>
+          <label className="text-sm">
+            Email
+            <input
+              name="clinic_email"
+              type="email"
+              defaultValue={values.clinic_email}
+              className="mt-1 w-full rounded-md border px-3 py-2 text-sm"
+              required
+            />
+          </label>
+          <label className="text-sm">
+            Phone number
+            <input
+              name="clinic_phone"
+              defaultValue={values.clinic_phone}
+              className="mt-1 w-full rounded-md border px-3 py-2 text-sm"
+              required
+            />
+          </label>
+          <label className="text-sm md:col-span-2">
+            Address
+            <textarea
+              name="clinic_address"
+              defaultValue={values.clinic_address}
+              className="mt-1 w-full rounded-md border px-3 py-2 text-sm"
+              rows={2}
+              required
+            />
+          </label>
+        </div>
+      </section>
+
+      <section className="rounded-lg border p-4 space-y-3">
+        <h2 className="text-lg font-semibold">Scheduling</h2>
+        <div className="grid gap-3 md:grid-cols-3">
+          <label className="text-sm">
+            Currency
+            <input
+              name="currency"
+              defaultValue={values.currency}
+              className="mt-1 w-full rounded-md border px-3 py-2 text-sm uppercase"
+              required
+              maxLength={5}
+            />
+          </label>
+          <label className="text-sm">
+            Timezone
+            <input
+              name="timezone"
+              defaultValue={values.timezone}
+              className="mt-1 w-full rounded-md border px-3 py-2 text-sm"
+              required
+            />
+          </label>
+          <label className="text-sm">
+            Default appointment duration (min)
+            <input
+              type="number"
+              name="default_appointment_duration"
+              min={5}
+              max={240}
+              defaultValue={values.default_appointment_duration}
+              className="mt-1 w-full rounded-md border px-3 py-2 text-sm"
+              required
+            />
+          </label>
+        </div>
+      </section>
+
+      <section className="rounded-lg border p-4 space-y-3">
+        <h2 className="text-lg font-semibold">Notifications</h2>
+        <label className="flex items-center gap-3 text-sm">
+          <input
+            type="checkbox"
+            name="enable_email_notifications"
+            defaultChecked={values.enable_email_notifications}
+          />
+          Email alerts
+        </label>
+        <label className="flex items-center gap-3 text-sm">
+          <input
+            type="checkbox"
+            name="enable_sms_notifications"
+            defaultChecked={values.enable_sms_notifications}
+          />
+          SMS reminders
+        </label>
+      </section>
+
+      <section className="rounded-lg border p-4 space-y-2">
+        <h2 className="text-lg font-semibold">Billing notes</h2>
+        <textarea
+          name="billing_notes"
+          defaultValue={values.billing_notes}
+          className="mt-1 w-full rounded-md border px-3 py-2 text-sm"
+          rows={4}
+        />
+        <p className="text-xs text-muted-foreground">
+          These notes can be referenced when generating invoices or communicating payment terms.
+        </p>
+      </section>
+
+      <button
+        className="rounded-md border px-4 py-2 text-sm font-medium disabled:opacity-50"
+        disabled={saving}
+      >
+        {saving ? "Saving..." : "Save settings"}
+      </button>
+    </form>
+  );
+}

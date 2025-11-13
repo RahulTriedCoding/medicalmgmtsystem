@@ -1,0 +1,38 @@
+[
+  {
+    "id": "syringe-5ml",
+    "name": "Syringe 5ml",
+    "description": "Disposable syringe for injections",
+    "unit": "pcs",
+    "quantity": 50,
+    "lowStockThreshold": 10,
+    "updated_at": "2025-11-13T13:44:51.307Z"
+  },
+  {
+    "id": "paracetamol-500mg",
+    "name": "Paracetamol 500mg",
+    "description": "Tablets - bottle of 100",
+    "unit": "tablets",
+    "quantity": 119,
+    "lowStockThreshold": 25,
+    "updated_at": "2025-11-13T13:37:48.583Z"
+  },
+  {
+    "id": "gauze-roll",
+    "name": "Gauze Roll",
+    "description": "Sterile gauze bandage roll",
+    "unit": "rolls",
+    "quantity": 30,
+    "lowStockThreshold": 8,
+    "updated_at": "2024-11-13T10:00:00.000Z"
+  },
+  {
+    "id": "f707bafc-3a33-479f-858e-e58afb251968",
+    "name": "norflox",
+    "description": "an anitbiotic",
+    "unit": "10",
+    "quantity": 51,
+    "lowStockThreshold": 0,
+    "updated_at": "2025-11-13T13:45:10.867Z"
+  }
+]
