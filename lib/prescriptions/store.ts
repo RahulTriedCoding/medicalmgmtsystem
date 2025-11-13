@@ -1,7 +1,7 @@
 import { randomUUID } from "crypto";
-import { readJsonFile, writeJsonFile } from "@/lib/storage/json";
-
-const FILE = "prescriptions.json";
+import type { SupabaseClient } from "@supabase/supabase-js";
+import { createSupabaseServerClient } from "@/lib/supabase/server";
+import { getCurrentStaffContext } from "@/lib/staff/current";
 
 export type PrescriptionLine = {
   item_id: string;
@@ -19,37 +19,177 @@ export type StoredPrescription = {
   created_at: string;
 };
 
-export async function getPrescriptions(): Promise<StoredPrescription[]> {
-  return readJsonFile<StoredPrescription[]>(FILE, []);
+type ServerClient = SupabaseClient;
+
+type PrescriptionLineRow = {
+  inventory_item_id: string | null;
+  name: string | null;
+  dosage: string;
+  quantity: number;
+};
+
+type PrescriptionRow = {
+  id: string;
+  patient_id: string;
+  doctor_id: string;
+  notes: string | null;
+  created_at: string;
+  lines?: PrescriptionLineRow[] | null;
+};
+
+// TODO: move any existing prescriptions.json records into the prescriptions table prior to release.
+
+async function ensureClient(client?: ServerClient) {
+  return client ?? (await createSupabaseServerClient());
 }
 
-export async function savePrescriptions(items: StoredPrescription[]) {
-  await writeJsonFile(FILE, items);
+function mapPrescription(row: PrescriptionRow): StoredPrescription {
+  return {
+    id: row.id,
+    patient_id: row.patient_id,
+    doctor_id: row.doctor_id,
+    notes: row.notes ?? null,
+    created_at: row.created_at,
+    lines: (row.lines ?? []).map((line) => ({
+      item_id: line.inventory_item_id ?? "",
+      name: line.name ?? "Item",
+      dosage: line.dosage,
+      quantity: Number(line.quantity ?? 0),
+    })),
+  };
+}
+
+export async function getPrescriptions(
+  client?: ServerClient
+): Promise<StoredPrescription[]> {
+  const supabase = await ensureClient(client);
+  const { data, error } = await supabase
+    .from("prescriptions")
+    .select(
+      `
+        id,
+        patient_id,
+        doctor_id,
+        notes,
+        created_at,
+        lines:prescription_lines (
+          id,
+          inventory_item_id,
+          name,
+          dosage,
+          quantity
+        )
+      `
+    )
+    .order("created_at", { ascending: false });
+
+  if (error) {
+    throw new Error(error.message);
+  }
+
+  const rows = (data ?? []) as PrescriptionRow[];
+  return rows.map(mapPrescription);
+}
+
+export async function savePrescriptions(_items: StoredPrescription[]) {
+  // Legacy no-op. Preserve signature for backward compatibility.
+  void _items;
 }
 
 export async function addPrescription(
-  payload: Omit<StoredPrescription, "id" | "created_at">
+  payload: Omit<StoredPrescription, "id" | "created_at">,
+  client?: ServerClient
 ): Promise<StoredPrescription> {
-  const current = await getPrescriptions();
-  const prescription: StoredPrescription = {
+  const supabase = await ensureClient(client);
+  const { staffId } = await getCurrentStaffContext(supabase);
+
+  const { data: inserted, error } = await supabase
+    .from("prescriptions")
+    .insert({
+      patient_id: payload.patient_id,
+      doctor_id: payload.doctor_id,
+      notes: payload.notes?.trim() ? payload.notes.trim() : null,
+      created_by: staffId,
+    })
+    .select("id, created_at, patient_id, doctor_id, notes")
+    .single();
+
+  if (error) {
+    throw new Error(error.message);
+  }
+
+  const prescriptionId = inserted.id as string;
+  const linesPayload = payload.lines.map((line) => ({
     id: randomUUID(),
-    created_at: new Date().toISOString(),
-    ...payload,
-  };
-  current.unshift(prescription);
-  await savePrescriptions(current);
-  return prescription;
+    prescription_id: prescriptionId,
+    inventory_item_id: line.item_id,
+    name: line.name ?? "Item",
+    dosage: line.dosage,
+    quantity: line.quantity,
+  }));
+
+  const { error: lineError } = await supabase
+    .from("prescription_lines")
+    .insert(linesPayload);
+
+  if (lineError) {
+    throw new Error(lineError.message);
+  }
+
+  const full = await findPrescription(prescriptionId, supabase);
+  if (!full) {
+    throw new Error("Prescription not found after creation");
+  }
+  return full;
 }
 
-export async function deletePrescription(id: string): Promise<boolean> {
-  const current = await getPrescriptions();
-  const next = current.filter((entry) => entry.id !== id);
-  if (next.length === current.length) return false;
-  await savePrescriptions(next);
-  return true;
+export async function deletePrescription(
+  id: string,
+  client?: ServerClient
+): Promise<boolean> {
+  const supabase = await ensureClient(client);
+  const { error, count } = await supabase
+    .from("prescriptions")
+    .delete({ count: "exact" })
+    .eq("id", id);
+
+  if (error) {
+    throw new Error(error.message);
+  }
+
+  return !!count;
 }
 
-export async function findPrescription(id: string): Promise<StoredPrescription | null> {
-  const current = await getPrescriptions();
-  return current.find((entry) => entry.id === id) ?? null;
+export async function findPrescription(
+  id: string,
+  client?: ServerClient
+): Promise<StoredPrescription | null> {
+  const supabase = await ensureClient(client);
+  const { data, error } = await supabase
+    .from("prescriptions")
+    .select(
+      `
+        id,
+        patient_id,
+        doctor_id,
+        notes,
+        created_at,
+        lines:prescription_lines (
+          id,
+          inventory_item_id,
+          name,
+          dosage,
+          quantity
+        )
+      `
+    )
+    .eq("id", id)
+    .maybeSingle();
+
+  if (error && error.code !== "PGRST116") {
+    throw new Error(error.message);
+  }
+
+  if (!data) return null;
+  return mapPrescription(data as PrescriptionRow);
 }

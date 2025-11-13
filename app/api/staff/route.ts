@@ -64,7 +64,7 @@ export async function GET() {
     return NextResponse.json({ error: error.message }, { status: 400 });
   }
 
-  const contacts = await getStaffContacts();
+  const contacts = await getStaffContacts(supabase);
   const map = new Map(contacts.map((contact) => [contact.id, contact]));
   const enriched = (data ?? []).map((row) => ({
     ...row,
@@ -172,7 +172,7 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: error.message }, { status: 400 });
   }
 
-  await upsertStaffContact(data.id, parsed.data.phone ?? null, true);
+  await upsertStaffContact(data.id, parsed.data.phone ?? null, true, supabase);
 
   return NextResponse.json(
     { ok: true, staff: { ...data, phone: parsed.data.phone ?? null, pending: true } },

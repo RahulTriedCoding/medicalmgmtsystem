@@ -59,7 +59,7 @@ export default async function BillingPage() {
 
   const [{ data: patients = [], error }, invoices] = await Promise.all([
     supabase.from("patients").select("id, full_name, mrn").order("full_name").limit(200),
-    getInvoices(),
+    getInvoices(supabase),
   ]);
 
   const patientOptions = buildPatientOptions(patients as Patient[]);

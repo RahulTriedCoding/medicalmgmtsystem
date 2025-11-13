@@ -11,6 +11,16 @@ function fmt(d: string) {
 }
 
 type Option = { id: string; label: string };
+type AppointmentRelation<T> = T | T[] | null;
+type AppointmentRow = {
+  id: string;
+  starts_at: string;
+  ends_at: string;
+  status: string;
+  reason: string | null;
+  patients: AppointmentRelation<{ full_name: string | null; mrn: string | null }>;
+  doctors: AppointmentRelation<{ full_name: string | null }>;
+};
 
 export default async function AppointmentsPage() {
   const supabase = await createSupabaseServerClient();
@@ -41,7 +51,8 @@ export default async function AppointmentsPage() {
     .limit(200);
 
   // 🔧 flatten nested arrays/objects so TS is happy
-  const appts = (apptsRaw ?? []).map((a: any) => ({
+  const rows = (apptsRaw ?? []) as AppointmentRow[];
+  const appts = rows.map((a) => ({
     id: a.id,
     starts_at: a.starts_at,
     ends_at: a.ends_at,

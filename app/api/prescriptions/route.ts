@@ -79,7 +79,7 @@ export async function GET() {
   const guard = await requireRole(supabase, ["admin", "doctor", "receptionist"]);
   if ("response" in guard) return guard.response;
 
-  const prescriptions = await getPrescriptions();
+  const prescriptions = await getPrescriptions(supabase);
   const patientIds = Array.from(new Set(prescriptions.map((p) => p.patient_id)));
   const doctorIds = Array.from(new Set(prescriptions.map((p) => p.doctor_id)));
 
@@ -142,7 +142,7 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "Doctor not found" }, { status: 400 });
   }
 
-  const inventoryItems = await getInventoryItems();
+  const inventoryItems = await getInventoryItems(supabase);
   const inventoryMap = new Map(inventoryItems.map((item) => [item.id, item]));
 
   const totals = parsed.data.lines.reduce<Record<string, number>>((acc, line) => {
@@ -155,7 +155,7 @@ export async function POST(req: Request) {
     quantity,
   }));
 
-  const consumption = await consumeInventory(requirements);
+  const consumption = await consumeInventory(requirements, supabase);
   if (consumption.shortages.length) {
     return NextResponse.json(
       { error: "insufficient_stock", details: consumption.shortages as InventoryShortage[] },
@@ -170,12 +170,15 @@ export async function POST(req: Request) {
     name: inventoryMap.get(line.item_id)?.name ?? "Item",
   }));
 
-  const prescription = await addPrescription({
-    patient_id: parsed.data.patient_id,
-    doctor_id: parsed.data.doctor_id,
-    notes: parsed.data.notes?.trim() ? parsed.data.notes.trim() : null,
-    lines: normalizedLines,
-  });
+  const prescription = await addPrescription(
+    {
+      patient_id: parsed.data.patient_id,
+      doctor_id: parsed.data.doctor_id,
+      notes: parsed.data.notes?.trim() ? parsed.data.notes.trim() : null,
+      lines: normalizedLines,
+    },
+    supabase
+  );
 
   return NextResponse.json({
     ok: true,

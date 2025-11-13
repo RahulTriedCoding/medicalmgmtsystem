@@ -95,8 +95,8 @@ export async function fetchDashboardData(supabase: SupabaseClient): Promise<Dash
       .gte("starts_at", now.toISOString())
       .order("starts_at", { ascending: true })
       .limit(5),
-    getInvoices(),
-    getInventoryItems(),
+    getInvoices(supabase),
+    getInventoryItems(supabase),
   ]);
 
   const patientCount = patientsQuery.count ?? 0;

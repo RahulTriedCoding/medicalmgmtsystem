@@ -61,7 +61,7 @@ export async function GET() {
   const guard = await requireRole(supabase, ["admin", "doctor", "receptionist"]);
   if ("response" in guard) return guard.response;
 
-  const items = await getInventoryItems();
+  const items = await getInventoryItems(supabase);
   return NextResponse.json({ ok: true, items });
 }
 
@@ -82,7 +82,7 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: parsed.error.flatten() }, { status: 400 });
   }
 
-  const item = await addInventoryItem(parsed.data);
+  const item = await addInventoryItem(parsed.data, supabase);
   return NextResponse.json({ ok: true, item }, { status: 201 });
 }
 
@@ -105,9 +105,9 @@ export async function PATCH(req: Request) {
 
   let item = null;
   if (parsed.data.quantity !== undefined) {
-    item = await setInventoryQuantity(parsed.data.id, parsed.data.quantity);
+    item = await setInventoryQuantity(parsed.data.id, parsed.data.quantity, supabase);
   } else if (parsed.data.delta !== undefined) {
-    item = await adjustInventoryQuantity(parsed.data.id, parsed.data.delta);
+    item = await adjustInventoryQuantity(parsed.data.id, parsed.data.delta, supabase);
   }
 
   if (!item) {

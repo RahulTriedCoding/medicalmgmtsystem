@@ -56,7 +56,7 @@ export async function GET() {
   const guard = await requireRole(supabase, ["admin", "receptionist", "doctor"]);
   if ("response" in guard) return guard.response;
 
-  const invoices = await getInvoices();
+  const invoices = await getInvoices(supabase);
   return NextResponse.json({ ok: true, invoices });
 }
 
@@ -91,12 +91,15 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "Patient not found" }, { status: 404 });
   }
 
-  const invoice = await addInvoice({
-    patient_id: parsed.data.patient_id,
-    due_date: parsed.data.due_date,
-    notes: parsed.data.notes ?? null,
-    line_items: parsed.data.line_items,
-  });
+  const invoice = await addInvoice(
+    {
+      patient_id: parsed.data.patient_id,
+      due_date: parsed.data.due_date,
+      notes: parsed.data.notes ?? null,
+      line_items: parsed.data.line_items,
+    },
+    supabase
+  );
 
   return NextResponse.json({ ok: true, invoice }, { status: 201 });
 }

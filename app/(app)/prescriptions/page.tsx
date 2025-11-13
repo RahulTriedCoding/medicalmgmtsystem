@@ -33,8 +33,8 @@ export default async function PrescriptionsPage() {
         .eq("role", "doctor")
         .order("full_name")
         .limit(200),
-      getInventoryItems(),
-      getPrescriptions(),
+      getInventoryItems(supabase),
+      getPrescriptions(supabase),
     ]);
 
   const patientMap = new Map(

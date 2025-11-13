@@ -54,7 +54,7 @@ export async function GET() {
   const guard = await requireRole(supabase, ["admin"]);
   if ("response" in guard) return guard.response;
 
-  const settings = await getSettings();
+  const settings = await getSettings(supabase);
   return NextResponse.json({ ok: true, settings });
 }
 
@@ -75,6 +75,6 @@ export async function PATCH(req: Request) {
     return NextResponse.json({ error: parsed.error.flatten() }, { status: 400 });
   }
 
-  const updated = await saveSettings(parsed.data);
+  const updated = await saveSettings(parsed.data, supabase);
   return NextResponse.json({ ok: true, settings: updated });
 }

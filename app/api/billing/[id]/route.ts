@@ -67,7 +67,7 @@ export async function GET(_: Request, { params }: { params: ParamsShape }) {
     return NextResponse.json({ error: "Invalid invoice id" }, { status: 400 });
   }
 
-  const invoice = await findInvoice(id);
+  const invoice = await findInvoice(id, supabase);
   if (!invoice) {
     return NextResponse.json({ error: "Not found" }, { status: 404 });
   }
@@ -97,7 +97,7 @@ export async function PATCH(req: Request, { params }: { params: ParamsShape }) {
     return NextResponse.json({ error: parsed.error.flatten() }, { status: 400 });
   }
 
-  const invoice = await recordPayment(id, parsed.data);
+  const invoice = await recordPayment(id, parsed.data, supabase);
   if (!invoice) {
     return NextResponse.json({ error: "Not found" }, { status: 404 });
   }

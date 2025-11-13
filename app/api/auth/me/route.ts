@@ -23,7 +23,7 @@ export async function GET() {
 
     if (byEmail) {
       await supabase.from("users").update({ auth_user_id: user.id }).eq("id", byEmail.id);
-      await upsertStaffContact(byEmail.id, undefined, false);
+      await upsertStaffContact(byEmail.id, undefined, false, supabase);
       me = { ...byEmail, auth_user_id: user.id };
     }
   }

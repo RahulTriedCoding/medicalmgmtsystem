@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { InventoryItem } from "@/lib/inventory/store";
+import type { InventoryItem } from "@/lib/inventory/store";
 
 type Props = {
   initialItems: InventoryItem[];

@@ -107,17 +107,12 @@ export async function PATCH(req: Request, { params }: { params: ParamsShape }) {
   let phoneValue: string | null = null;
   let pendingValue = false;
   if (parsed.data.phone !== undefined) {
-    await upsertStaffContact(id, parsed.data.phone);
-    const updatedContacts = await getStaffContacts();
-    const updated = updatedContacts.find((contact) => contact.id === id);
-    phoneValue = updated?.phone ?? parsed.data.phone ?? null;
-    pendingValue = updated?.pending ?? false;
-  } else {
-    const contacts = await getStaffContacts();
-    const record = contacts.find((contact) => contact.id === id);
-    phoneValue = record?.phone ?? null;
-    pendingValue = record?.pending ?? false;
+    await upsertStaffContact(id, parsed.data.phone, undefined, supabase);
   }
+  const contacts = await getStaffContacts(supabase);
+  const record = contacts.find((contact) => contact.id === id);
+  phoneValue = record?.phone ?? null;
+  pendingValue = record?.pending ?? false;
 
   return NextResponse.json({
     ok: true,
@@ -158,7 +153,7 @@ export async function DELETE(_: Request, { params }: { params: ParamsShape }) {
     return NextResponse.json({ error: "Not found" }, { status: 404 });
   }
 
-  await deleteStaffContact(id);
+  await deleteStaffContact(id, supabase);
 
   return NextResponse.json({ ok: true });
 }

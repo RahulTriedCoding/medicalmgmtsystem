@@ -78,7 +78,7 @@ export default async function StaffPage() {
     .select("id, full_name, email, role, created_at, auth_user_id")
     .order("full_name", { ascending: true });
 
-  const contacts = await getStaffContacts();
+  const contacts = await getStaffContacts(supabase);
   const contactMap = new Map(contacts.map((contact) => [contact.id, contact]));
   const staff = coerceStaff(data ?? []).map((member) => ({
     ...member,

@@ -14,6 +14,12 @@ type Patient = {
   allergies?: string | null;
 };
 
+function isPatientRow(row: unknown): row is Patient {
+  if (!row || typeof row !== "object") return false;
+  const candidate = row as { id?: unknown };
+  return typeof candidate.id === "string" && candidate.id.length > 0;
+}
+
 function fmtDate(d?: string | null) {
   if (!d) return "-";
   const dt = new Date(d);
@@ -30,9 +36,7 @@ export default async function PatientsPage() {
     .limit(100);
 
   // Ensure we only render rows with a valid UUID id
-  const patients: Patient[] = (data ?? []).filter(
-    (p: any) => typeof p?.id === "string" && p.id.length > 0
-  ) as Patient[];
+  const patients: Patient[] = (data ?? []).filter(isPatientRow);
 
   return (
     <div className="space-y-4">

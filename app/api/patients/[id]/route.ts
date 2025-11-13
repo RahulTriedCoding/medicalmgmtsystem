@@ -13,18 +13,22 @@ export async function PATCH(request: Request, { params }: { params: ParamsShape 
     return NextResponse.json({ error: "Missing patient id in URL" }, { status: 400 });
   }
 
-  let parsed: any;
+  let parsed: unknown;
   try {
     parsed = await request.json();
-  } catch (err) {
+  } catch {
     return NextResponse.json({ error: "Invalid JSON body" }, { status: 400 });
   }
 
-  // optional: whitelist fields you allow to update
-  const updates: Record<string, any> = {};
-  const allowed = ["full_name", "phone", "dob", "gender", "address", "allergies"];
-  for (const k of allowed) {
-    if (k in parsed) updates[k] = parsed[k];
+  const allowed = ["full_name", "phone", "dob", "gender", "address", "allergies"] as const;
+  const updates: Record<string, unknown> = {};
+
+  if (parsed && typeof parsed === "object") {
+    for (const k of allowed) {
+      if (k in parsed) {
+        updates[k] = (parsed as Record<string, unknown>)[k];
+      }
+    }
   }
 
   const supabase = await createSupabaseServerClient();

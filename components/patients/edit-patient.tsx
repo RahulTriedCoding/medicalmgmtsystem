@@ -72,9 +72,10 @@ export default function EditPatientButton({ patient }: { patient: Patient }) {
       toast.success("Patient updated successfully");
       setOpen(false);
       router.refresh();
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error(err);
-      toast.error(err?.message ?? "Update failed");
+      const message = err instanceof Error ? err.message : "Update failed";
+      toast.error(message);
     } finally {
       setLoading(false);
     }
