@@ -83,49 +83,49 @@ export function InventoryManager({ initialItems }: Props) {
 
   return (
     <div className="space-y-6">
-      <section className="rounded-lg border p-4">
-        <h2 className="text-lg font-semibold mb-3">Add inventory item</h2>
+      <section className="surface border border-white/10 p-5">
+        <h2 className="mb-3 text-lg font-semibold text-white">Add inventory item</h2>
         <form className="grid gap-3 md:grid-cols-2" onSubmit={handleAdd}>
-          <label className="text-sm">
+          <label className="text-sm text-muted-foreground">
             Name *
-            <input name="name" required className="mt-1 w-full rounded-md border px-3 py-2 text-sm" />
+            <input name="name" required className="field mt-1" />
           </label>
-          <label className="text-sm">
+          <label className="text-sm text-muted-foreground">
             Unit
-            <input name="unit" className="mt-1 w-full rounded-md border px-3 py-2 text-sm" placeholder="pcs, box..." />
+            <input name="unit" className="field mt-1" placeholder="pcs, box..." />
           </label>
-          <label className="text-sm">
+          <label className="text-sm text-muted-foreground">
             Quantity *
             <input
               name="quantity"
               type="number"
               min={0}
               defaultValue={0}
-              className="mt-1 w-full rounded-md border px-3 py-2 text-sm"
+              className="field mt-1"
             />
           </label>
-          <label className="text-sm">
+          <label className="text-sm text-muted-foreground">
             Low stock threshold
             <input
               name="threshold"
               type="number"
               min={0}
               defaultValue={0}
-              className="mt-1 w-full rounded-md border px-3 py-2 text-sm"
+              className="field mt-1"
             />
           </label>
-          <label className="text-sm md:col-span-2">
+          <label className="text-sm text-muted-foreground md:col-span-2">
             Description
             <textarea
               name="description"
-              className="mt-1 w-full rounded-md border px-3 py-2 text-sm"
+              className="field mt-1"
               rows={2}
             />
           </label>
           <div className="md:col-span-2 flex items-center gap-3">
             <button
               disabled={formState.loading}
-              className="rounded-md border px-3 py-2 text-sm disabled:opacity-50"
+              className="btn-primary disabled:opacity-60"
             >
               {formState.loading ? "Saving..." : "Save item"}
             </button>
@@ -135,10 +135,10 @@ export function InventoryManager({ initialItems }: Props) {
         </form>
       </section>
 
-      <section className="rounded-lg border">
-        <div className="flex items-center justify-between border-b px-4 py-3">
-          <h2 className="text-lg font-semibold">Current stock</h2>
-          <button className="text-sm underline" onClick={refresh}>
+      <section className="surface border border-white/10">
+        <div className="flex items-center justify-between border-b border-white/10 px-4 py-3">
+          <h2 className="text-lg font-semibold text-white">Current stock</h2>
+          <button className="btn-ghost text-sm" onClick={refresh}>
             Refresh
           </button>
         </div>
@@ -170,19 +170,19 @@ export function InventoryManager({ initialItems }: Props) {
                     <td className="p-2">
                       <div className="flex gap-2">
                         <button
-                          className="rounded-md border px-2 py-1 text-xs"
+                          className="btn-secondary text-xs px-3 py-1.5"
                           onClick={() => adjust(item.id, 5)}
                         >
                           +5
                         </button>
                         <button
-                          className="rounded-md border px-2 py-1 text-xs"
+                          className="btn-secondary text-xs px-3 py-1.5"
                           onClick={() => adjust(item.id, 1)}
                         >
                           +1
                         </button>
                         <button
-                          className="rounded-md border px-2 py-1 text-xs"
+                          className="btn-secondary text-xs px-3 py-1.5"
                           onClick={() => adjust(item.id, -1)}
                         >
                           -1

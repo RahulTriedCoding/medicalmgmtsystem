@@ -119,19 +119,19 @@ export function NewInvoiceButton({ patients }: { patients: Option[] }) {
 
   return (
     <>
-      <button className="rounded-md border px-3 py-2 text-sm" onClick={() => setOpen(true)}>
+      <button className="btn-primary text-sm" onClick={() => setOpen(true)}>
         New invoice
       </button>
 
       {open && (
-        <div className="fixed inset-0 z-50 grid place-items-center bg-black/40 p-4">
-          <div className="w-full max-w-3xl rounded-lg border bg-background p-4">
+        <div className="fixed inset-0 z-50 grid place-items-center bg-black/70 p-4 backdrop-blur">
+          <div className="w-full max-w-3xl space-y-4 rounded-3xl border border-white/10 bg-[#080a10] p-6 shadow-[0_30px_80px_rgba(0,0,0,0.65)]">
             <div className="flex items-center justify-between gap-4">
               <div>
-                <h2 className="text-lg font-semibold">New invoice</h2>
+                <h2 className="text-lg font-semibold text-white">New invoice</h2>
                 <p className="text-sm text-muted-foreground">Capture billable services for a patient.</p>
               </div>
-              <button className="rounded-md border px-2 py-1 text-sm" onClick={() => setOpen(false)}>
+              <button className="btn-ghost text-xs" onClick={() => setOpen(false)}>
                 Close
               </button>
             </div>
@@ -144,12 +144,12 @@ export function NewInvoiceButton({ patients }: { patients: Option[] }) {
               }}
             >
               <div className="grid gap-3 md:grid-cols-2">
-                <label className="text-sm">
+                <label className="text-sm text-muted-foreground">
                   Patient *
                   <select
                     name="patient_id"
                     required
-                    className="mt-1 w-full rounded-md border px-3 py-2 text-sm"
+                    className="field mt-1"
                   >
                     <option value="">— Select patient —</option>
                     {patients.map((patient) => (
@@ -160,21 +160,21 @@ export function NewInvoiceButton({ patients }: { patients: Option[] }) {
                   </select>
                 </label>
 
-                <label className="text-sm">
+                <label className="text-sm text-muted-foreground">
                   Due date *
-                  <input type="date" name="due_date" required className="mt-1 w-full rounded-md border px-3 py-2 text-sm" />
+                  <input type="date" name="due_date" required className="field mt-1" />
                 </label>
               </div>
 
-              <label className="text-sm block">
+              <label className="block text-sm text-muted-foreground">
                 Notes
-                <textarea name="notes" className="mt-1 w-full rounded-md border px-3 py-2 text-sm" rows={2} />
+                <textarea name="notes" className="field mt-1" rows={2} />
               </label>
 
-              <section className="rounded-lg border">
-                <header className="flex items-center justify-between border-b px-3 py-2 text-sm font-medium">
+              <section className="rounded-2xl border border-white/10 bg-black/20">
+                <header className="flex items-center justify-between border-b border-white/10 px-3 py-2 text-sm font-medium">
                   Line items
-                  <button type="button" className="rounded-md border px-2 py-1 text-xs" onClick={addLine}>
+                  <button type="button" className="btn-secondary text-xs px-3 py-1.5" onClick={addLine}>
                     Add line
                   </button>
                 </header>
@@ -198,7 +198,7 @@ export function NewInvoiceButton({ patients }: { patients: Option[] }) {
                           <tr key={line.id} className="border-t">
                             <td className="p-2">
                               <input
-                                className="w-full rounded-md border px-2 py-1 text-sm"
+                                className="field px-3 py-1 text-sm"
                                 value={line.description}
                                 onChange={(e) => updateLine(line.id, { description: e.target.value })}
                                 placeholder="Service description"
@@ -209,7 +209,7 @@ export function NewInvoiceButton({ patients }: { patients: Option[] }) {
                                 type="number"
                                 min={0}
                                 step="0.25"
-                                className="w-full rounded-md border px-2 py-1 text-sm"
+                                className="field px-3 py-1 text-sm"
                                 value={line.quantity}
                                 onChange={(e) => updateLine(line.id, { quantity: e.target.value })}
                               />
@@ -219,7 +219,7 @@ export function NewInvoiceButton({ patients }: { patients: Option[] }) {
                                 type="number"
                                 min={0}
                                 step="0.01"
-                                className="w-full rounded-md border px-2 py-1 text-sm"
+                                className="field px-3 py-1 text-sm"
                                 value={line.unit_price}
                                 onChange={(e) => updateLine(line.id, { unit_price: e.target.value })}
                               />
@@ -228,7 +228,7 @@ export function NewInvoiceButton({ patients }: { patients: Option[] }) {
                             <td className="p-2">
                               <button
                                 type="button"
-                                className="rounded-md border px-2 py-1 text-xs"
+                                className="btn-ghost text-xs"
                                 onClick={() => removeLine(line.id)}
                                 disabled={lines.length === 1}
                               >
@@ -241,22 +241,22 @@ export function NewInvoiceButton({ patients }: { patients: Option[] }) {
                     </tbody>
                   </table>
                 </div>
-                <footer className="flex items-center justify-end gap-3 border-t px-3 py-2 text-sm">
+                <footer className="flex items-center justify-end gap-3 border-t border-white/10 px-3 py-2 text-sm">
                   <span className="text-muted-foreground">Total</span>
-                  <span className="text-base font-semibold">${total.toFixed(2)}</span>
+                  <span className="text-base font-semibold text-white">${total.toFixed(2)}</span>
                 </footer>
               </section>
 
               <div className="flex items-center gap-3">
                 <button
                   disabled={loading}
-                  className="rounded-md border px-3 py-2 text-sm disabled:opacity-50"
+                  className="btn-primary disabled:opacity-60"
                 >
                   {loading ? "Saving..." : "Create invoice"}
                 </button>
                 <button
                   type="button"
-                  className="text-sm text-muted-foreground underline"
+                  className="btn-ghost text-sm"
                   onClick={resetForm}
                 >
                   Reset form

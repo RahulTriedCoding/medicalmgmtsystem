@@ -47,20 +47,20 @@ export function NewStaffButton() {
 
   return (
     <>
-      <button className="rounded-md border px-3 py-2 text-sm" onClick={() => setOpen(true)}>
+      <button className="btn-primary text-sm" onClick={() => setOpen(true)}>
         Invite staff
       </button>
       {open && (
-        <div className="fixed inset-0 z-50 grid place-items-center bg-black/40 p-4">
-          <div className="w-full max-w-lg rounded-lg border bg-background p-4">
+        <div className="fixed inset-0 z-50 grid place-items-center bg-black/70 p-4 backdrop-blur">
+          <div className="w-full max-w-lg space-y-4 rounded-3xl border border-white/10 bg-[#080a10] p-5 shadow-[0_30px_80px_rgba(0,0,0,0.65)]">
             <div className="flex items-center justify-between">
               <div>
-                <h2 className="text-lg font-semibold">Invite staff member</h2>
+                <h2 className="text-lg font-semibold text-white">Invite staff member</h2>
                 <p className="text-sm text-muted-foreground">
                   Send access to doctors, nurses, and clinic staff.
                 </p>
               </div>
-              <button className="rounded-md border px-2 py-1 text-sm" onClick={() => setOpen(false)}>
+              <button className="btn-ghost text-xs" onClick={() => setOpen(false)}>
                 Close
               </button>
             </div>
@@ -72,42 +72,42 @@ export function NewStaffButton() {
                 onSubmit(new FormData(event.currentTarget));
               }}
             >
-              <label className="text-sm block">
+              <label className="text-sm text-muted-foreground block">
                 Full name *
                 <input
                   name="full_name"
                   required
-                  className="mt-1 w-full rounded-md border px-3 py-2 text-sm"
+                  className="field mt-1"
                   placeholder="Dr. Jane Doe"
                 />
               </label>
 
-              <label className="text-sm block">
+              <label className="text-sm text-muted-foreground block">
                 Email *
                 <input
                   name="email"
                   type="email"
                   required
-                  className="mt-1 w-full rounded-md border px-3 py-2 text-sm"
+                  className="field mt-1"
                   placeholder="jane@example.com"
                 />
               </label>
 
-              <label className="text-sm block">
+              <label className="text-sm text-muted-foreground block">
                 Phone
                 <input
                   name="phone"
-                  className="mt-1 w-full rounded-md border px-3 py-2 text-sm"
+                  className="field mt-1"
                   placeholder="+1 555 123 4567"
                 />
               </label>
 
-              <label className="text-sm block">
+              <label className="text-sm text-muted-foreground block">
                 Role *
                 <select
                   name="role"
                   required
-                  className="mt-1 w-full rounded-md border px-3 py-2 text-sm capitalize"
+                  className="field mt-1 capitalize"
                 >
                   <option value="">Select a role</option>
                   {STAFF_ROLES.map((role) => (
@@ -118,10 +118,7 @@ export function NewStaffButton() {
                 </select>
               </label>
 
-              <button
-                disabled={loading}
-                className="w-full rounded-md border px-3 py-2 text-sm font-medium disabled:opacity-50"
-              >
+              <button disabled={loading} className="btn-primary w-full disabled:opacity-60">
                 {loading ? "Saving..." : "Send invite"}
               </button>
             </form>

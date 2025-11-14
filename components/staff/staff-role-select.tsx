@@ -34,7 +34,7 @@ export function StaffRoleSelect({ id, role }: { id: string; role: StaffRole }) {
 
   return (
     <select
-      className="rounded-md border px-2 py-1 text-sm capitalize"
+      className="field px-3 py-1 text-sm capitalize"
       value={value}
       onChange={(event) => updateRole(event.target.value as StaffRole)}
       disabled={loading}

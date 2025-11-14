@@ -95,16 +95,16 @@ export default function NewAppointmentButton(props: {
 
   return (
     <>
-      <button className="rounded-md border px-3 py-2 text-sm" onClick={() => setOpen(true)}>
+      <button className="btn-primary text-sm" onClick={() => setOpen(true)}>
         New appointment
       </button>
 
       {open && (
-        <div className="fixed inset-0 z-50 grid place-items-center bg-black/40 p-4">
-          <div className="w-full max-w-xl rounded-lg border bg-background p-4">
+        <div className="fixed inset-0 z-50 grid place-items-center bg-black/70 p-4 backdrop-blur">
+          <div className="w-full max-w-xl space-y-4 rounded-3xl border border-white/10 bg-[#080a10] p-5 shadow-[0_30px_80px_rgba(0,0,0,0.65)]">
             <div className="flex items-center justify-between">
-              <h2 className="text-lg font-semibold">Create appointment</h2>
-              <button className="rounded-md border px-2 py-1 text-sm" onClick={() => setOpen(false)}>
+              <h2 className="text-lg font-semibold text-white">Create appointment</h2>
+              <button className="btn-ghost text-xs" onClick={() => setOpen(false)}>
                 Close
               </button>
             </div>
@@ -114,8 +114,8 @@ export default function NewAppointmentButton(props: {
               onSubmit={(e) => { e.preventDefault(); onSubmit(new FormData(e.currentTarget)); }}
             >
               <div className="grid gap-1 sm:col-span-2">
-                <label className="text-sm">Patient *</label>
-                <select name="patient_id" required className="rounded-md border px-3 py-2">
+                <label className="text-sm text-muted-foreground">Patient *</label>
+                <select name="patient_id" required className="field">
                   <option value="">— Select patient —</option>
                   {patients.map(p => (
                     <option key={p.id} value={p.id}>{p.label}</option>
@@ -124,8 +124,8 @@ export default function NewAppointmentButton(props: {
               </div>
 
               <div className="grid gap-1 sm:col-span-2">
-                <label className="text-sm">Doctor *</label>
-                <select name="doctor_id" required className="rounded-md border px-3 py-2">
+                <label className="text-sm text-muted-foreground">Doctor *</label>
+                <select name="doctor_id" required className="field">
                   <option value="">— Select doctor —</option>
                   {doctors.map(d => (
                     <option key={d.id} value={d.id}>{d.label}</option>
@@ -134,27 +134,27 @@ export default function NewAppointmentButton(props: {
               </div>
 
               <div className="grid gap-1">
-                <label className="text-sm">Date *</label>
-                <input type="date" name="date" required className="rounded-md border px-3 py-2" />
+                <label className="text-sm text-muted-foreground">Date *</label>
+                <input type="date" name="date" required className="field" />
               </div>
 
               <div className="grid gap-1">
-                <label className="text-sm">Start time *</label>
-                <input type="time" name="start" required className="rounded-md border px-3 py-2" />
+                <label className="text-sm text-muted-foreground">Start time *</label>
+                <input type="time" name="start" required className="field" />
               </div>
 
               <div className="grid gap-1">
-                <label className="text-sm">Duration (min)</label>
-                <input type="number" name="duration" defaultValue={30} min={5} step={5} className="rounded-md border px-3 py-2" />
+                <label className="text-sm text-muted-foreground">Duration (min)</label>
+                <input type="number" name="duration" defaultValue={30} min={5} step={5} className="field" />
               </div>
 
               <div className="grid gap-1 sm:col-span-2">
-                <label className="text-sm">Reason *</label>
-                <input name="reason" required maxLength={200} className="rounded-md border px-3 py-2" />
+                <label className="text-sm text-muted-foreground">Reason *</label>
+                <input name="reason" required maxLength={200} className="field" />
               </div>
 
               <div className="sm:col-span-2 mt-1">
-                <button disabled={loading} className="rounded-md border px-3 py-2 text-sm disabled:opacity-50">
+                <button disabled={loading} className="btn-primary disabled:opacity-60">
                   {loading ? "Saving..." : "Save"}
                 </button>
               </div>

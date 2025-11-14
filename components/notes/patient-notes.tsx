@@ -20,7 +20,7 @@ export function PatientNotesButton({ patientId, patientName }: PatientNotesButto
 
   return (
     <>
-      <button className="rounded-md border px-2 py-1 text-xs" onClick={() => setOpen(true)}>
+      <button className="btn-secondary text-xs" onClick={() => setOpen(true)}>
         Notes
       </button>
       {open && (
@@ -60,14 +60,14 @@ function PatientNotesDialog({ patientId, patientName, onClose }: PatientNotesDia
   }, [patientId]);
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4 py-6">
-      <div className="w-full max-w-2xl rounded-lg border bg-background p-4 shadow-lg">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 px-4 py-6 backdrop-blur">
+      <div className="w-full max-w-2xl space-y-4 rounded-3xl border border-white/10 bg-[#080a10] p-5 shadow-[0_30px_80px_rgba(0,0,0,0.65)]">
         <div className="flex items-center justify-between">
           <div>
-            <h2 className="text-lg font-semibold">Notes for {patientName ?? "patient"}</h2>
+            <h2 className="text-lg font-semibold text-white">Notes for {patientName ?? "patient"}</h2>
             <p className="text-sm text-muted-foreground">Includes all appointment notes you can access.</p>
           </div>
-          <button className="rounded-md border px-2 py-1 text-sm" onClick={onClose}>
+          <button className="btn-ghost text-xs" onClick={onClose}>
             Close
           </button>
         </div>
@@ -80,9 +80,9 @@ function PatientNotesDialog({ patientId, patientName, onClose }: PatientNotesDia
           ) : !notes.length ? (
             <p className="text-sm text-muted-foreground">No notes available.</p>
           ) : (
-            <ul className="space-y-3 max-h-96 overflow-y-auto pr-2">
+            <ul className="max-h-96 space-y-3 overflow-y-auto pr-2">
               {notes.map((note) => (
-                <li key={note.id} className="rounded-md border p-3 text-sm space-y-1">
+                <li key={note.id} className="space-y-1 rounded-2xl border border-white/10 bg-black/20 p-3 text-sm">
                   <div className="flex items-center justify-between text-xs text-muted-foreground">
                     <span>{note.doctor_name ?? "Doctor"}</span>
                     <span>{new Date(note.created_at).toLocaleString()}</span>

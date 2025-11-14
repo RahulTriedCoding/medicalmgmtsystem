@@ -123,17 +123,17 @@ export default function NewPrescriptionButton(props: {
 
   return (
     <>
-      <button className="rounded-md border px-3 py-2 text-sm" onClick={() => setOpen(true)}>
+      <button className="btn-primary text-sm" onClick={() => setOpen(true)}>
         New prescription
       </button>
 
       {open && (
-        <div className="fixed inset-0 z-50 grid place-items-center bg-black/40 p-4">
-          <div className="w-full max-w-2xl rounded-lg border bg-background p-4">
+        <div className="fixed inset-0 z-50 grid place-items-center bg-black/70 p-4 backdrop-blur">
+          <div className="w-full max-w-2xl space-y-4 rounded-3xl border border-white/10 bg-[#080a10] p-5 shadow-[0_30px_80px_rgba(0,0,0,0.65)]">
             <div className="flex items-center justify-between">
-              <h2 className="text-lg font-semibold">Create prescription</h2>
+              <h2 className="text-lg font-semibold text-white">Create prescription</h2>
               <button
-                className="rounded-md border px-2 py-1 text-sm"
+                className="btn-ghost text-xs"
                 onClick={() => {
                   setOpen(false);
                   resetForm();
@@ -151,8 +151,8 @@ export default function NewPrescriptionButton(props: {
               }}
             >
               <div className="grid gap-2 sm:grid-cols-2">
-                <label className="text-sm">Patient *</label>
-                <select name="patient_id" className="rounded-md border px-3 py-2" required>
+                <label className="text-sm text-muted-foreground">Patient *</label>
+                <select name="patient_id" className="field" required>
                   <option value="">— Select patient —</option>
                   {patients.map((patient) => (
                     <option key={patient.id} value={patient.id}>
@@ -161,8 +161,8 @@ export default function NewPrescriptionButton(props: {
                   ))}
                 </select>
 
-                <label className="text-sm">Doctor *</label>
-                <select name="doctor_id" className="rounded-md border px-3 py-2" required>
+                <label className="text-sm text-muted-foreground">Doctor *</label>
+                <select name="doctor_id" className="field" required>
                   <option value="">— Select doctor —</option>
                   {doctors.map((doctor) => (
                     <option key={doctor.id} value={doctor.id}>
@@ -174,8 +174,8 @@ export default function NewPrescriptionButton(props: {
 
               <div className="space-y-3">
                 <div className="flex items-center justify-between">
-                  <h3 className="text-sm font-medium">Medications</h3>
-                  <button type="button" className="text-sm underline" onClick={addLine}>
+                  <h3 className="text-sm font-medium text-white">Medications</h3>
+                  <button type="button" className="btn-secondary text-xs px-3 py-1.5" onClick={addLine}>
                     Add line
                   </button>
                 </div>
@@ -183,12 +183,12 @@ export default function NewPrescriptionButton(props: {
                 {lines.map((line, index) => (
                   <div
                     key={index}
-                    className="grid gap-2 rounded-md border p-3 sm:grid-cols-[2fr_2fr_1fr_auto]"
+                    className="grid gap-2 rounded-2xl border border-white/10 bg-black/20 p-3 sm:grid-cols-[2fr_2fr_1fr_auto]"
                   >
                     <select
                       value={line.item_id}
                       onChange={(event) => updateLine(index, { item_id: event.target.value })}
-                      className="rounded-md border px-2 py-1 text-sm"
+                      className="field px-3 py-1 text-sm"
                       required
                     >
                       <option value="">Select item</option>
@@ -202,7 +202,7 @@ export default function NewPrescriptionButton(props: {
                     <input
                       value={line.dosage}
                       onChange={(event) => updateLine(index, { dosage: event.target.value })}
-                      className="rounded-md border px-2 py-1 text-sm"
+                      className="field px-3 py-1 text-sm"
                       placeholder="Dose & frequency"
                       required
                     />
@@ -212,14 +212,14 @@ export default function NewPrescriptionButton(props: {
                       min={1}
                       value={line.quantity}
                       onChange={(event) => updateLine(index, { quantity: Number(event.target.value) })}
-                      className="rounded-md border px-2 py-1 text-sm"
+                      className="field px-3 py-1 text-sm"
                       required
                     />
 
                     <button
                       type="button"
                       onClick={() => removeLine(index)}
-                      className="text-xs text-red-600 underline"
+                      className="btn-ghost text-xs text-red-400 hover:text-red-400"
                       disabled={lines.length === 1}
                     >
                       Remove
@@ -229,17 +229,17 @@ export default function NewPrescriptionButton(props: {
               </div>
 
               <div>
-                <label className="text-sm">Notes</label>
+                <label className="text-sm text-muted-foreground">Notes</label>
                 <textarea
                   name="notes"
-                  className="mt-1 w-full rounded-md border px-3 py-2 text-sm"
+                  className="field mt-1"
                   rows={3}
                 />
               </div>
 
               <button
                 disabled={saving}
-                className="rounded-md border px-3 py-2 text-sm disabled:opacity-50"
+                className="btn-primary disabled:opacity-60"
               >
                 {saving ? "Saving..." : "Save prescription"}
               </button>

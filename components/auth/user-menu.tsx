@@ -30,16 +30,18 @@ export default function UserMenu() {
   }
 
   return (
-    <div className="mt-4 rounded-md border p-3 text-xs">
+    <div className="surface mt-4 space-y-2 rounded-2xl border border-white/10 bg-white/[0.06] p-4 text-xs text-white/70 shadow-inner shadow-black/40">
       {loading ? (
-        <div className="animate-pulse">Loading user…</div>
+        <div className="animate-pulse text-white/60">Loading user…</div>
       ) : me ? (
         <>
-          <div className="font-medium truncate">{me.email ?? "—"}</div>
+          <div className="text-[13px] font-semibold text-white truncate">
+            {me.email ?? "—"}
+          </div>
           <div className="text-muted-foreground">Role: {me.role ?? "—"}</div>
           <button
             onClick={signOut}
-            className="mt-2 inline-flex rounded-md border px-2 py-1"
+            className="btn-secondary mt-3 w-full justify-center text-xs"
           >
             Sign out
           </button>
@@ -49,7 +51,7 @@ export default function UserMenu() {
           <div className="text-muted-foreground">Not signed in</div>
           <button
             onClick={() => router.push("/login")}
-            className="mt-2 inline-flex rounded-md border px-2 py-1"
+            className="btn-secondary mt-3 w-full justify-center text-xs"
           >
             Go to login
           </button>

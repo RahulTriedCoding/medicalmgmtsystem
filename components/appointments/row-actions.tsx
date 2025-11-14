@@ -31,8 +31,12 @@ export default function RowActions({ id, patientName, doctorName }: Props) {
   return (
     <div className="flex gap-2 flex-wrap">
       <AppointmentNotesButton appointmentId={id} patientName={patientName} doctorName={doctorName} />
-      <button onClick={cancel} className="rounded-md border px-2 py-1 text-xs">Cancel</button>
-      <button onClick={remove} className="rounded-md border px-2 py-1 text-xs">Delete</button>
+      <button onClick={cancel} className="btn-secondary text-xs px-3 py-1.5">
+        Cancel
+      </button>
+      <button onClick={remove} className="btn-danger text-xs px-3 py-1.5">
+        Delete
+      </button>
     </div>
   );
 }

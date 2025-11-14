@@ -44,19 +44,19 @@ export default function NewPatientButton() {
     <>
       <button
         onClick={() => setOpen(true)}
-        className="rounded-md border px-3 py-2 text-sm"
+        className="btn-primary text-sm"
       >
         New patient
       </button>
 
       {open && (
-        <div className="fixed inset-0 z-50 grid place-items-center bg-black/40 p-4">
-          <div className="w-full max-w-lg rounded-lg border bg-background p-4">
+        <div className="fixed inset-0 z-50 grid place-items-center bg-black/70 p-4 backdrop-blur">
+          <div className="w-full max-w-lg space-y-4 rounded-3xl border border-white/10 bg-[#080a10] p-5 shadow-[0_30px_80px_rgba(0,0,0,0.65)]">
             <div className="flex items-center justify-between">
-              <h2 className="text-lg font-semibold">Add patient</h2>
+              <h2 className="text-lg font-semibold text-white">Add patient</h2>
               <button
                 onClick={() => setOpen(false)}
-                className="rounded-md border px-2 py-1 text-sm"
+                className="btn-ghost text-xs"
               >
                 Close
               </button>
@@ -70,28 +70,28 @@ export default function NewPatientButton() {
               }}
             >
               <div className="grid gap-1">
-                <label className="text-sm">MRN *</label>
-                <input name="mrn" required className="w-full rounded-md border px-3 py-2" />
+                <label className="text-sm text-muted-foreground">MRN *</label>
+                <input name="mrn" required className="field" />
               </div>
 
               <div className="grid gap-1">
-                <label className="text-sm">Full name *</label>
-                <input name="full_name" required className="w-full rounded-md border px-3 py-2" />
+                <label className="text-sm text-muted-foreground">Full name *</label>
+                <input name="full_name" required className="field" />
               </div>
 
               <div className="grid gap-1">
-                <label className="text-sm">Phone</label>
-                <input name="phone" className="w-full rounded-md border px-3 py-2" />
+                <label className="text-sm text-muted-foreground">Phone</label>
+                <input name="phone" className="field" />
               </div>
 
               <div className="grid gap-1">
-                <label className="text-sm">DOB</label>
-                <input type="date" name="dob" className="w-full rounded-md border px-3 py-2" />
+                <label className="text-sm text-muted-foreground">DOB</label>
+                <input type="date" name="dob" className="field" />
               </div>
 
               <div className="grid gap-1">
-                <label className="text-sm">Gender</label>
-                <select name="gender" className="w-full rounded-md border px-3 py-2">
+                <label className="text-sm text-muted-foreground">Gender</label>
+                <select name="gender" className="field">
                   <option value="">—</option>
                   <option value="male">Male</option>
                   <option value="female">Female</option>
@@ -100,26 +100,26 @@ export default function NewPatientButton() {
               </div>
 
               <div className="grid gap-1">
-                <label className="text-sm">Address</label>
-                <input name="address" className="w-full rounded-md border px-3 py-2" />
+                <label className="text-sm text-muted-foreground">Address</label>
+                <input name="address" className="field" />
               </div>
 
               <div className="grid gap-1">
-                <label className="text-sm">Allergies</label>
-                <input name="allergies" className="w-full rounded-md border px-3 py-2" />
+                <label className="text-sm text-muted-foreground">Allergies</label>
+                <input name="allergies" className="field" />
               </div>
 
               <div className="mt-2 flex items-center gap-2">
                 <button
                   disabled={loading}
-                  className="rounded-md border px-3 py-2 text-sm disabled:opacity-50"
+                  className="btn-primary disabled:opacity-60"
                 >
                   {loading ? "Saving..." : "Save"}
                 </button>
                 <button
                   type="button"
                   onClick={() => setOpen(false)}
-                  className="rounded-md border px-3 py-2 text-sm"
+                  className="btn-secondary"
                 >
                   Cancel
                 </button>

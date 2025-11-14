@@ -61,7 +61,7 @@ export function RecordPaymentButton({ invoiceId, invoiceNumber, balance }: Props
   return (
     <>
       <button
-        className="rounded-md border px-2 py-1 text-xs disabled:opacity-50"
+        className="btn-secondary text-xs disabled:opacity-50"
         disabled={balance <= 0}
         onClick={() => setOpen(true)}
       >
@@ -69,16 +69,16 @@ export function RecordPaymentButton({ invoiceId, invoiceNumber, balance }: Props
       </button>
 
       {open && (
-        <div className="fixed inset-0 z-50 grid place-items-center bg-black/40 p-4">
-          <div className="w-full max-w-md rounded-lg border bg-background p-4">
+        <div className="fixed inset-0 z-50 grid place-items-center bg-black/70 p-4 backdrop-blur">
+          <div className="w-full max-w-md space-y-4 rounded-3xl border border-white/10 bg-[#080a10] p-5 shadow-[0_30px_80px_rgba(0,0,0,0.65)]">
             <div className="flex items-center justify-between gap-4">
               <div>
-                <h2 className="text-lg font-semibold">Payment for {invoiceNumber}</h2>
+                <h2 className="text-lg font-semibold text-white">Payment for {invoiceNumber}</h2>
                 <p className="text-sm text-muted-foreground">
                   Outstanding balance: ${balance.toFixed(2)}
                 </p>
               </div>
-              <button className="rounded-md border px-2 py-1 text-sm" onClick={() => setOpen(false)}>
+              <button className="btn-ghost text-xs" onClick={() => setOpen(false)}>
                 Close
               </button>
             </div>
@@ -90,7 +90,7 @@ export function RecordPaymentButton({ invoiceId, invoiceNumber, balance }: Props
                 onSubmit(new FormData(e.currentTarget));
               }}
             >
-              <label className="text-sm block">
+              <label className="text-sm text-muted-foreground block">
                 Amount *
                 <input
                   type="number"
@@ -98,37 +98,37 @@ export function RecordPaymentButton({ invoiceId, invoiceNumber, balance }: Props
                   min={0.01}
                   step="0.01"
                   defaultValue={balance.toFixed(2)}
-                  className="mt-1 w-full rounded-md border px-3 py-2 text-sm"
+                  className="field mt-1"
                   required
                 />
               </label>
 
-              <label className="text-sm block">
+              <label className="text-sm text-muted-foreground block">
                 Payment date
-                <input type="date" name="paid_at" className="mt-1 w-full rounded-md border px-3 py-2 text-sm" />
+                <input type="date" name="paid_at" className="field mt-1" />
               </label>
 
-              <label className="text-sm block">
+              <label className="text-sm text-muted-foreground block">
                 Method
                 <input
                   name="method"
                   placeholder="Cash, card, insurance..."
-                  className="mt-1 w-full rounded-md border px-3 py-2 text-sm"
+                  className="field mt-1"
                 />
               </label>
 
-              <label className="text-sm block">
+              <label className="text-sm text-muted-foreground block">
                 Reference
                 <input
                   name="reference"
                   placeholder="Receipt, auth code..."
-                  className="mt-1 w-full rounded-md border px-3 py-2 text-sm"
+                  className="field mt-1"
                 />
               </label>
 
               <button
                 disabled={loading}
-                className="w-full rounded-md border px-3 py-2 text-sm disabled:opacity-50"
+                className="btn-primary w-full disabled:opacity-60"
               >
                 {loading ? "Saving..." : "Save payment"}
               </button>

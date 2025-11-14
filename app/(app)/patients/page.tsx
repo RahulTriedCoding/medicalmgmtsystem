@@ -42,16 +42,16 @@ export default async function PatientsPage() {
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
-        <h1 className="text-xl font-semibold">Patients</h1>
+        <h1 className="text-2xl font-semibold text-white">Patients</h1>
         <NewPatientButton />
       </div>
 
       {error ? (
-        <div className="text-red-600 text-sm">Error: {error.message}</div>
+        <div className="text-sm text-red-400">Error: {error.message}</div>
       ) : !patients.length ? (
         <div className="text-sm text-muted-foreground">No patients found.</div>
       ) : (
-        <div className="border rounded-lg overflow-hidden">
+        <div className="surface border border-white/10 overflow-hidden">
           <table className="w-full text-sm">
             <thead className="bg-muted">
               <tr>

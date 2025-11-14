@@ -21,24 +21,24 @@ function statusBadgeClass(status: string) {
   switch (status) {
     case "completed":
     case "paid":
-      return "bg-emerald-100 text-emerald-800";
+      return "border border-emerald-400/30 bg-emerald-400/10 text-emerald-200";
     case "cancelled":
     case "overdue":
-      return "bg-red-100 text-red-800";
+      return "border border-red-400/30 bg-red-500/10 text-red-200";
     case "in_progress":
     case "partial":
-      return "bg-amber-100 text-amber-800";
+      return "border border-amber-400/30 bg-amber-400/10 text-amber-200";
     default:
-      return "bg-blue-100 text-blue-800";
+      return "border border-sky-400/30 bg-sky-500/10 text-sky-100";
   }
 }
 
 function MetricCard({ title, value, subtitle }: { title: string; value: string; subtitle?: string }) {
   return (
-    <article className="rounded-lg border p-4">
-      <p className="text-sm text-muted-foreground">{title}</p>
-      <p className="text-2xl font-semibold">{value}</p>
-      {subtitle && <p className="text-xs text-muted-foreground mt-1">{subtitle}</p>}
+    <article className="surface border border-white/10 p-5">
+      <p className="text-xs uppercase tracking-[0.35em] text-white/50">{title}</p>
+      <p className="text-3xl font-semibold text-white">{value}</p>
+      {subtitle && <p className="mt-2 text-sm text-muted-foreground">{subtitle}</p>}
     </article>
   );
 }
@@ -50,8 +50,11 @@ export default async function DashboardPage() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-semibold">Dashboard</h1>
-        <p className="text-sm text-muted-foreground">Key metrics across scheduling, billing, and inventory.</p>
+        <p className="text-xs uppercase tracking-[0.35em] text-white/50">Command center</p>
+        <h1 className="text-3xl font-semibold text-white">Dashboard</h1>
+        <p className="text-sm text-muted-foreground">
+          Key metrics across scheduling, billing, and inventory.
+        </p>
       </div>
 
       <section className="grid gap-3 md:grid-cols-2 lg:grid-cols-4">
@@ -74,9 +77,9 @@ export default async function DashboardPage() {
       </section>
 
       <div className="grid gap-6 lg:grid-cols-2">
-        <section className="rounded-lg border">
-          <header className="flex items-center justify-between border-b px-4 py-3">
-            <h2 className="text-lg font-semibold">Upcoming appointments</h2>
+        <section className="surface border border-white/10">
+          <header className="flex items-center justify-between border-b border-white/10 px-4 py-3">
+            <h2 className="text-lg font-semibold text-white">Upcoming appointments</h2>
             <p className="text-xs text-muted-foreground">Next five scheduled</p>
           </header>
           {!metrics.upcomingAppointments.length ? (
@@ -118,9 +121,9 @@ export default async function DashboardPage() {
           )}
         </section>
 
-        <section className="rounded-lg border">
-          <header className="flex items-center justify-between border-b px-4 py-3">
-            <h2 className="text-lg font-semibold">Outstanding invoices</h2>
+        <section className="surface border border-white/10">
+          <header className="flex items-center justify-between border-b border-white/10 px-4 py-3">
+            <h2 className="text-lg font-semibold text-white">Outstanding invoices</h2>
             <p className="text-xs text-muted-foreground">
               {formatCurrency(metrics.outstandingBalance)} outstanding / {formatCurrency(metrics.overdueBalance)} overdue
             </p>
@@ -159,9 +162,9 @@ export default async function DashboardPage() {
         </section>
       </div>
 
-      <section className="rounded-lg border">
-        <header className="flex items-center justify-between border-b px-4 py-3">
-          <h2 className="text-lg font-semibold">Inventory alerts</h2>
+      <section className="surface border border-white/10">
+        <header className="flex items-center justify-between border-b border-white/10 px-4 py-3">
+          <h2 className="text-lg font-semibold text-white">Inventory alerts</h2>
           <p className="text-xs text-muted-foreground">Items at or below threshold</p>
         </header>
         {!metrics.lowStockItems.length ? (

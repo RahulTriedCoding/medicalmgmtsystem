@@ -44,10 +44,7 @@ export function AppointmentNotesButton({
 
   return (
     <>
-      <button
-        onClick={() => setOpen(true)}
-        className="rounded-md border px-2 py-1 text-xs"
-      >
+      <button onClick={() => setOpen(true)} className="btn-secondary text-xs">
         Notes
       </button>
       {open && (
@@ -123,25 +120,25 @@ function NotesDialog({ appointmentId, patientName, doctorName, onClose }: NotesD
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4 py-6">
-      <div className="w-full max-w-2xl rounded-lg border bg-background p-4 shadow-lg">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 px-4 py-6 backdrop-blur">
+      <div className="w-full max-w-2xl space-y-4 rounded-3xl border border-white/10 bg-[#080a10] p-5 shadow-[0_30px_80px_rgba(0,0,0,0.65)]">
         <div className="flex items-center justify-between">
           <div>
-            <h2 className="text-lg font-semibold">Visit notes</h2>
+            <h2 className="text-lg font-semibold text-white">Visit notes</h2>
             <p className="text-sm text-muted-foreground">
               {patientName ?? "Patient"} · {doctorName ?? "Doctor"}
             </p>
           </div>
-          <button className="rounded-md border px-2 py-1 text-sm" onClick={onClose}>
+          <button className="btn-ghost text-xs" onClick={onClose}>
             Close
           </button>
         </div>
 
         <div className="mt-4 space-y-4">
           <div className="space-y-2">
-            <label className="text-sm font-medium">Template</label>
+            <label className="text-sm font-medium text-muted-foreground">Template</label>
             <select
-              className="w-full rounded-md border px-3 py-2 text-sm"
+              className="field"
               value={templateKey ?? ""}
               onChange={(event) => {
                 const nextKey = event.target.value || null;
@@ -164,25 +161,21 @@ function NotesDialog({ appointmentId, patientName, doctorName, onClose }: NotesD
           </div>
 
           <div className="space-y-2">
-            <label className="text-sm font-medium">Note</label>
+            <label className="text-sm font-medium text-muted-foreground">Note</label>
             <textarea
-              className="h-32 w-full rounded-md border px-3 py-2 text-sm"
+              className="field h-32"
               value={noteText}
               placeholder="Subjective, assessment, plan..."
               onChange={(event) => setNoteText(event.target.value)}
             />
           </div>
 
-          <button
-            className="rounded-md border px-3 py-2 text-sm font-medium disabled:opacity-50"
-            onClick={submitNote}
-            disabled={submitting}
-          >
+          <button className="btn-primary disabled:opacity-60" onClick={submitNote} disabled={submitting}>
             {submitting ? "Saving..." : "Save note"}
           </button>
 
-          <div className="border-t pt-4">
-            <h3 className="text-sm font-semibold mb-2">Previous notes</h3>
+          <div className="border-t border-white/10 pt-4">
+            <h3 className="mb-2 text-sm font-semibold text-white">Previous notes</h3>
             {loading ? (
               <p className="text-sm text-muted-foreground">Loading...</p>
             ) : error ? (
@@ -190,9 +183,9 @@ function NotesDialog({ appointmentId, patientName, doctorName, onClose }: NotesD
             ) : !notes.length ? (
               <p className="text-sm text-muted-foreground">No notes for this appointment.</p>
             ) : (
-              <ul className="space-y-3 max-h-60 overflow-y-auto pr-2">
+              <ul className="max-h-60 space-y-3 overflow-y-auto pr-2">
                 {notes.map((note) => (
-                  <li key={note.id} className="rounded-md border p-3 text-sm space-y-1">
+                  <li key={note.id} className="space-y-1 rounded-2xl border border-white/10 bg-black/20 p-3 text-sm">
                     <div className="flex items-center justify-between text-xs text-muted-foreground">
                       <span>{note.doctor_name ?? "Doctor"}</span>
                       <span>{new Date(note.created_at).toLocaleString()}</span>

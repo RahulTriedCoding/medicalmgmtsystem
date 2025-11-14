@@ -53,43 +53,43 @@ export function SettingsForm({ initial }: Props) {
 
   return (
     <form className="space-y-6" onSubmit={onSubmit}>
-      <section className="rounded-lg border p-4 space-y-3">
-        <h2 className="text-lg font-semibold">Clinic profile</h2>
+      <section className="surface border border-white/10 p-5 space-y-3">
+        <h2 className="text-lg font-semibold text-white">Clinic profile</h2>
         <div className="grid gap-3 md:grid-cols-2">
-          <label className="text-sm">
+          <label className="text-sm text-muted-foreground">
             Clinic name
             <input
               name="clinic_name"
               defaultValue={values.clinic_name}
-              className="mt-1 w-full rounded-md border px-3 py-2 text-sm"
+              className="field mt-1"
               required
             />
           </label>
-          <label className="text-sm">
+          <label className="text-sm text-muted-foreground">
             Email
             <input
               name="clinic_email"
               type="email"
               defaultValue={values.clinic_email}
-              className="mt-1 w-full rounded-md border px-3 py-2 text-sm"
+              className="field mt-1"
               required
             />
           </label>
-          <label className="text-sm">
+          <label className="text-sm text-muted-foreground">
             Phone number
             <input
               name="clinic_phone"
               defaultValue={values.clinic_phone}
-              className="mt-1 w-full rounded-md border px-3 py-2 text-sm"
+              className="field mt-1"
               required
             />
           </label>
-          <label className="text-sm md:col-span-2">
+          <label className="text-sm text-muted-foreground md:col-span-2">
             Address
             <textarea
               name="clinic_address"
               defaultValue={values.clinic_address}
-              className="mt-1 w-full rounded-md border px-3 py-2 text-sm"
+              className="field mt-1"
               rows={2}
               required
             />
@@ -97,29 +97,29 @@ export function SettingsForm({ initial }: Props) {
         </div>
       </section>
 
-      <section className="rounded-lg border p-4 space-y-3">
-        <h2 className="text-lg font-semibold">Scheduling</h2>
+      <section className="surface border border-white/10 p-5 space-y-3">
+        <h2 className="text-lg font-semibold text-white">Scheduling</h2>
         <div className="grid gap-3 md:grid-cols-3">
-          <label className="text-sm">
+          <label className="text-sm text-muted-foreground">
             Currency
             <input
               name="currency"
               defaultValue={values.currency}
-              className="mt-1 w-full rounded-md border px-3 py-2 text-sm uppercase"
+              className="field mt-1 uppercase"
               required
               maxLength={5}
             />
           </label>
-          <label className="text-sm">
+          <label className="text-sm text-muted-foreground">
             Timezone
             <input
               name="timezone"
               defaultValue={values.timezone}
-              className="mt-1 w-full rounded-md border px-3 py-2 text-sm"
+              className="field mt-1"
               required
             />
           </label>
-          <label className="text-sm">
+          <label className="text-sm text-muted-foreground">
             Default appointment duration (min)
             <input
               type="number"
@@ -127,16 +127,16 @@ export function SettingsForm({ initial }: Props) {
               min={5}
               max={240}
               defaultValue={values.default_appointment_duration}
-              className="mt-1 w-full rounded-md border px-3 py-2 text-sm"
+              className="field mt-1"
               required
             />
           </label>
         </div>
       </section>
 
-      <section className="rounded-lg border p-4 space-y-3">
-        <h2 className="text-lg font-semibold">Notifications</h2>
-        <label className="flex items-center gap-3 text-sm">
+      <section className="surface border border-white/10 p-5 space-y-3">
+        <h2 className="text-lg font-semibold text-white">Notifications</h2>
+        <label className="flex items-center gap-3 text-sm text-muted-foreground">
           <input
             type="checkbox"
             name="enable_email_notifications"
@@ -144,7 +144,7 @@ export function SettingsForm({ initial }: Props) {
           />
           Email alerts
         </label>
-        <label className="flex items-center gap-3 text-sm">
+        <label className="flex items-center gap-3 text-sm text-muted-foreground">
           <input
             type="checkbox"
             name="enable_sms_notifications"
@@ -154,12 +154,12 @@ export function SettingsForm({ initial }: Props) {
         </label>
       </section>
 
-      <section className="rounded-lg border p-4 space-y-2">
-        <h2 className="text-lg font-semibold">Billing notes</h2>
+      <section className="surface border border-white/10 p-5 space-y-2">
+        <h2 className="text-lg font-semibold text-white">Billing notes</h2>
         <textarea
           name="billing_notes"
           defaultValue={values.billing_notes}
-          className="mt-1 w-full rounded-md border px-3 py-2 text-sm"
+          className="field mt-1"
           rows={4}
         />
         <p className="text-xs text-muted-foreground">
@@ -168,7 +168,7 @@ export function SettingsForm({ initial }: Props) {
       </section>
 
       <button
-        className="rounded-md border px-4 py-2 text-sm font-medium disabled:opacity-50"
+        className="btn-primary px-6 py-2.5 text-sm font-semibold disabled:opacity-60"
         disabled={saving}
       >
         {saving ? "Saving..." : "Save settings"}
