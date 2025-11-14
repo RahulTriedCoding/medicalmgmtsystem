@@ -126,7 +126,7 @@ export function RecordPaymentButton({ invoiceId, invoiceNumber, balance }: Props
                 />
               </label>
 
-              <div className="flex justify-end">
+              <div className="form-actions">
                 <button disabled={loading} className="btn-primary disabled:opacity-60">
                   {loading ? "Saving..." : "Save payment"}
                 </button>

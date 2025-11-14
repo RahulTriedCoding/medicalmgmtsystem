@@ -122,7 +122,7 @@ export function InventoryManager({ initialItems }: Props) {
               rows={2}
             />
           </label>
-          <div className="md:col-span-2 flex items-center justify-end gap-4">
+          <div className="form-actions md:col-span-2">
             <button
               disabled={formState.loading}
               className="btn-primary disabled:opacity-60"

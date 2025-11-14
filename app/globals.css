@@ -197,4 +197,8 @@
   .badge {
     @apply inline-flex items-center rounded-full border border-white/10 px-2.5 py-0.5 text-[11px] font-semibold uppercase tracking-wide;
   }
+
+  .form-actions {
+    @apply mt-6 flex flex-wrap items-center justify-end gap-3 sm:gap-4;
+  }
 }

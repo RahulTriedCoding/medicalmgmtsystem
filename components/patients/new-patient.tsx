@@ -109,7 +109,7 @@ export default function NewPatientButton() {
                 <input name="allergies" className="field" />
               </div>
 
-              <div className="mt-4 flex items-center justify-end gap-4">
+              <div className="form-actions">
                 <button
                   disabled={loading}
                   className="btn-primary disabled:opacity-60"

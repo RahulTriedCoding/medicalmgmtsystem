@@ -237,12 +237,11 @@ export default function NewPrescriptionButton(props: {
                 />
               </div>
 
-              <button
-                disabled={saving}
-                className="btn-primary disabled:opacity-60"
-              >
-                {saving ? "Saving..." : "Save prescription"}
-              </button>
+              <div className="form-actions">
+                <button disabled={saving} className="btn-primary disabled:opacity-60">
+                  {saving ? "Saving..." : "Save prescription"}
+                </button>
+              </div>
             </form>
           </div>
         </div>

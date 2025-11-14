@@ -153,7 +153,7 @@ export default function NewAppointmentButton(props: {
                 <input name="reason" required maxLength={200} className="field" />
               </div>
 
-              <div className="sm:col-span-2 mt-4 flex justify-end">
+              <div className="sm:col-span-2 form-actions">
                 <button disabled={loading} className="btn-primary disabled:opacity-60">
                   {loading ? "Saving..." : "Save"}
                 </button>
