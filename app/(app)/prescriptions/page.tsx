@@ -12,6 +12,20 @@ import { getPrescriptions, StoredPrescription } from "@/lib/prescriptions/store"
 type Option = { id: string; label: string };
 type InventoryOption = { id: string; label: string; quantity: number };
 
+function resolveErrorMessage(value: unknown): string {
+  if (!value) return "Something went wrong";
+  if (value instanceof Error) return value.message;
+  if (typeof value === "string") return value;
+  if (
+    typeof value === "object" &&
+    "message" in value &&
+    typeof (value as { message?: unknown }).message === "string"
+  ) {
+    return (value as { message: string }).message;
+  }
+  return "Something went wrong";
+}
+
 function fmtDate(value: string) {
   const dt = new Date(value);
   return dt.toLocaleString(undefined, {
@@ -95,11 +109,7 @@ export default async function PrescriptionsPage() {
   });
 
   const error = patientsResult.error || doctorsResult.error || prescriptionsError;
-  const errorMessage = error
-    ? error instanceof Error
-      ? error.message
-      : error.message ?? "Something went wrong"
-    : null;
+  const errorMessage = error ? resolveErrorMessage(error) : null;
 
   return (
     <div className="space-y-4">

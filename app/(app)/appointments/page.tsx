@@ -65,7 +65,9 @@ export default async function AppointmentsPage() {
     .limit(200);
 
   // 🔧 flatten nested arrays/objects so TS is happy
-  const rows: AppointmentRow[] = Array.isArray(apptsRaw) ? apptsRaw.filter(isAppointmentRow) : [];
+  const rows = Array.isArray(apptsRaw)
+    ? (apptsRaw.filter((entry) => isAppointmentRow(entry)) as AppointmentRow[])
+    : [];
   const appts = rows.map((a) => ({
     id: a.id,
     patient_id: a.patient_id,
