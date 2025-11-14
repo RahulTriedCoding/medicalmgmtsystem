@@ -1,5 +1,5 @@
 import { randomUUID } from "crypto";
-import type { SupabaseClient } from "@supabase/supabase-js";
+import type { PostgrestError, SupabaseClient } from "@supabase/supabase-js";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { getCurrentStaffContext } from "@/lib/staff/current";
 
@@ -31,10 +31,18 @@ type InventoryQuantityRow = {
   quantity: number;
 };
 
-// TODO: copy inventory.json data into inventory_items before deleting the legacy file.
-
 async function ensureClient(client?: ServerClient) {
   return client ?? (await createSupabaseServerClient());
+}
+
+function isSchemaMissing(error?: PostgrestError | null) {
+  if (!error) return false;
+  const message = error.message ?? "";
+  return (
+    error.code === "42P01" ||
+    error.code === "42703" ||
+    /does not exist/i.test(message)
+  );
 }
 
 function mapItem(row: InventoryRow): InventoryItem {
@@ -59,6 +67,9 @@ export async function getInventoryItems(
     .order("name", { ascending: true });
 
   if (error) {
+    if (isSchemaMissing(error)) {
+      throw new Error("Inventory tables are missing from the Supabase project.");
+    }
     throw new Error(error.message);
   }
 
@@ -98,6 +109,9 @@ export async function addInventoryItem(
     .single();
 
   if (error) {
+    if (isSchemaMissing(error)) {
+      throw new Error("Inventory tables are missing from the Supabase project.");
+    }
     throw new Error(error.message);
   }
 
@@ -114,7 +128,10 @@ async function fetchInventoryItem(
     .eq("id", itemId)
     .maybeSingle();
 
-  if (error && error.code !== "PGRST116") {
+  if (error) {
+    if (error.code === "PGRST116" || isSchemaMissing(error)) {
+      return null;
+    }
     throw new Error(error.message);
   }
   return data ? mapItem(data as InventoryRow) : null;
@@ -142,6 +159,9 @@ export async function adjustInventoryQuantity(
     .single();
 
   if (error) {
+    if (isSchemaMissing(error)) {
+      throw new Error("Inventory tables are missing from the Supabase project.");
+    }
     throw new Error(error.message);
   }
 
@@ -153,6 +173,9 @@ export async function adjustInventoryQuantity(
   });
 
   if (adjustmentError) {
+    if (isSchemaMissing(adjustmentError)) {
+      throw new Error("Inventory tables are missing from the Supabase project.");
+    }
     throw new Error(adjustmentError.message);
   }
 
@@ -192,6 +215,9 @@ export async function consumeInventory(
     .in("id", ids);
 
   if (error) {
+    if (isSchemaMissing(error)) {
+      throw new Error("Inventory tables are missing from the Supabase project.");
+    }
     throw new Error(error.message);
   }
 
@@ -230,6 +256,9 @@ export async function consumeInventory(
       .eq("id", req.item_id);
 
     if (updateError) {
+      if (isSchemaMissing(updateError)) {
+        throw new Error("Inventory tables are missing from the Supabase project.");
+      }
       throw new Error(updateError.message);
     }
 
@@ -242,6 +271,9 @@ export async function consumeInventory(
     });
 
     if (adjustmentError) {
+      if (isSchemaMissing(adjustmentError)) {
+        throw new Error("Inventory tables are missing from the Supabase project.");
+      }
       throw new Error(adjustmentError.message);
     }
   }

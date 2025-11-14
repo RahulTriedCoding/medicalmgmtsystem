@@ -1,5 +1,5 @@
 import { randomUUID } from "crypto";
-import type { SupabaseClient } from "@supabase/supabase-js";
+import type { PostgrestError, SupabaseClient } from "@supabase/supabase-js";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { getCurrentStaffContext } from "@/lib/staff/current";
 
@@ -85,10 +85,14 @@ type InvoiceRow = {
   payments?: InvoicePaymentRow[] | null;
 };
 
-// TODO: migrate legacy billing.json data into billing_* tables before deploying broadly.
-
 async function ensureClient(client?: ServerClient) {
   return client ?? (await createSupabaseServerClient());
+}
+
+function isTableMissing(error?: PostgrestError | null) {
+  if (!error) return false;
+  const message = error.message ?? "";
+  return error.code === "42P01" || /Could not find (the )?table/i.test(message);
 }
 
 function roundCurrency(value: number) {
@@ -222,6 +226,9 @@ export async function getInvoices(
     .order("created_at", { ascending: false });
 
   if (error) {
+    if (isTableMissing(error)) {
+      throw new Error("Billing tables are missing from the Supabase project.");
+    }
     throw new Error(error.message);
   }
 
@@ -266,7 +273,11 @@ export async function findInvoice(
     .eq("id", id)
     .maybeSingle();
 
-  if (error && error.code !== "PGRST116") {
+  if (error) {
+    if (error.code === "PGRST116") return null;
+    if (isTableMissing(error)) {
+      throw new Error("Billing tables are missing from the Supabase project.");
+    }
     throw new Error(error.message);
   }
 
@@ -312,6 +323,9 @@ export async function addInvoice(
     .single();
 
   if (error) {
+    if (isTableMissing(error)) {
+      throw new Error("Billing tables are missing from the Supabase project.");
+    }
     throw new Error(error.message);
   }
 
@@ -330,6 +344,9 @@ export async function addInvoice(
     );
 
   if (lineError) {
+    if (isTableMissing(lineError)) {
+      throw new Error("Billing tables are missing from the Supabase project.");
+    }
     throw new Error(lineError.message);
   }
 
@@ -373,6 +390,9 @@ export async function recordPayment(
   });
 
   if (paymentError) {
+    if (isTableMissing(paymentError)) {
+      throw new Error("Billing tables are missing from the Supabase project.");
+    }
     throw new Error(paymentError.message);
   }
 
@@ -387,6 +407,9 @@ export async function recordPayment(
     .eq("id", invoiceId);
 
   if (updateError) {
+    if (isTableMissing(updateError)) {
+      throw new Error("Billing tables are missing from the Supabase project.");
+    }
     throw new Error(updateError.message);
   }
 
