@@ -170,15 +170,21 @@ export async function POST(req: Request) {
     name: inventoryMap.get(line.item_id)?.name ?? "Item",
   }));
 
-  const prescription = await addPrescription(
-    {
-      patient_id: parsed.data.patient_id,
-      doctor_id: parsed.data.doctor_id,
-      notes: parsed.data.notes?.trim() ? parsed.data.notes.trim() : null,
-      lines: normalizedLines,
-    },
-    supabase
-  );
+  let prescription;
+  try {
+    prescription = await addPrescription(
+      {
+        patient_id: parsed.data.patient_id,
+        doctor_id: parsed.data.doctor_id,
+        notes: parsed.data.notes?.trim() ? parsed.data.notes.trim() : null,
+        lines: normalizedLines,
+      },
+      supabase
+    );
+  } catch (error) {
+    const message = error instanceof Error ? error.message : "Failed to create prescription";
+    return NextResponse.json({ error: message }, { status: 400 });
+  }
 
   return NextResponse.json({
     ok: true,

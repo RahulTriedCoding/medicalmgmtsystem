@@ -25,17 +25,25 @@ function fmtDate(value: string) {
 export default async function PrescriptionsPage() {
   const supabase = await createSupabaseServerClient();
 
-  const [patientsResult, doctorsResult, inventoryItems, prescriptions] = await Promise.all([
-      supabase.from("patients").select("id, full_name, mrn").order("full_name").limit(200),
-      supabase
-        .from("users")
-        .select("id, full_name, role")
-        .eq("role", "doctor")
-        .order("full_name")
-        .limit(200),
-      getInventoryItems(supabase),
-      getPrescriptions(supabase),
-    ]);
+  const [patientsResult, doctorsResult] = await Promise.all([
+    supabase.from("patients").select("id, full_name, mrn").order("full_name").limit(200),
+    supabase
+      .from("users")
+      .select("id, full_name, role")
+      .eq("role", "doctor")
+      .order("full_name")
+      .limit(200),
+  ]);
+
+  const inventoryItems = await getInventoryItems(supabase);
+
+  let prescriptions: StoredPrescription[] = [];
+  let prescriptionsError: Error | null = null;
+  try {
+    prescriptions = await getPrescriptions(supabase);
+  } catch (error) {
+    prescriptionsError = error instanceof Error ? error : new Error("Unable to load prescriptions");
+  }
 
   const patientMap = new Map(
     (patientsResult.data ?? []).map((patient) => [patient.id, patient.full_name ?? "Patient"])
@@ -86,7 +94,12 @@ export default async function PrescriptionsPage() {
     };
   });
 
-  const error = patientsResult.error || doctorsResult.error;
+  const error = patientsResult.error || doctorsResult.error || prescriptionsError;
+  const errorMessage = error
+    ? error instanceof Error
+      ? error.message
+      : error.message ?? "Something went wrong"
+    : null;
 
   return (
     <div className="space-y-4">
@@ -95,8 +108,8 @@ export default async function PrescriptionsPage() {
         <NewPrescriptionButton patients={patients} doctors={doctors} items={items} />
       </div>
 
-      {error ? (
-        <div className="text-sm text-red-600">Error: {error.message}</div>
+      {errorMessage ? (
+        <div className="text-sm text-red-600">Error: {errorMessage}</div>
       ) : !mappedPrescriptions.length ? (
         <div className="text-sm text-muted-foreground">No prescriptions yet.</div>
       ) : (

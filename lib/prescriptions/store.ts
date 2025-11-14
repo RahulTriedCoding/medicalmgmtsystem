@@ -1,5 +1,5 @@
 import { randomUUID } from "crypto";
-import type { SupabaseClient } from "@supabase/supabase-js";
+import type { PostgrestError, SupabaseClient } from "@supabase/supabase-js";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { getCurrentStaffContext } from "@/lib/staff/current";
 
@@ -39,6 +39,24 @@ type PrescriptionRow = {
 
 async function ensureClient(client?: ServerClient) {
   return client ?? (await createSupabaseServerClient());
+}
+
+function isSchemaMissing(error?: PostgrestError | null) {
+  if (!error) return false;
+  const message = error.message ?? "";
+  return (
+    error.code === "42P01" ||
+    error.code === "42703" ||
+    /relationship.*not found/i.test(message) ||
+    /does not exist/i.test(message)
+  );
+}
+
+function handleError(error: PostgrestError): never {
+  if (isSchemaMissing(error)) {
+    throw new Error("Prescriptions tables are missing. Ask an admin to run the latest Supabase migrations.");
+  }
+  throw new Error(error.message);
 }
 
 function mapPrescription(row: PrescriptionRow): StoredPrescription {
@@ -82,7 +100,11 @@ export async function getPrescriptions(
     .order("created_at", { ascending: false });
 
   if (error) {
-    throw new Error(error.message);
+    if (isSchemaMissing(error)) {
+      console.warn("[prescriptions] clinical tables missing. Returning empty list.");
+      return [];
+    }
+    handleError(error);
   }
 
   const rows = (data ?? []) as PrescriptionRow[];
@@ -108,7 +130,10 @@ export async function addPrescription(
     .single();
 
   if (error) {
-    throw new Error(error.message);
+    if (isSchemaMissing(error)) {
+      throw new Error("Prescriptions tables are missing. Ask an admin to run the latest Supabase migrations.");
+    }
+    handleError(error);
   }
 
   const prescriptionId = inserted.id as string;
@@ -124,7 +149,10 @@ export async function addPrescription(
   if (linesPayload.length) {
     const { error: lineError } = await supabase.from("prescription_lines").insert(linesPayload);
     if (lineError) {
-      throw new Error(lineError.message);
+      if (isSchemaMissing(lineError)) {
+        throw new Error("Prescriptions tables are missing. Ask an admin to run the latest Supabase migrations.");
+      }
+      handleError(lineError);
     }
   }
 
@@ -146,7 +174,10 @@ export async function deletePrescription(
     .eq("id", id);
 
   if (error) {
-    throw new Error(error.message);
+    if (isSchemaMissing(error)) {
+      return false;
+    }
+    handleError(error);
   }
 
   return !!count;
@@ -179,7 +210,10 @@ export async function findPrescription(
     .maybeSingle();
 
   if (error) {
-    throw new Error(error.message);
+    if (isSchemaMissing(error)) {
+      return null;
+    }
+    handleError(error);
   }
 
   if (!data) return null;

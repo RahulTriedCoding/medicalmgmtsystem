@@ -2,6 +2,7 @@
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import NewPatientButton from "@/components/patients/new-patient";
 import EditPatientButton from "@/components/patients/edit-patient";
+import { PatientNotesButton } from "@/components/notes/patient-notes";
 
 type Patient = {
   id: string;
@@ -69,7 +70,10 @@ export default async function PatientsPage() {
                   <td className="p-2">{p.phone ?? "-"}</td>
                   <td className="p-2">{fmtDate(p.dob)}</td>
                   <td className="p-2">
-                    <EditPatientButton patient={p} />
+                    <div className="flex gap-2 flex-wrap">
+                      <EditPatientButton patient={p} />
+                      <PatientNotesButton patientId={p.id} patientName={p.full_name} />
+                    </div>
                   </td>
                 </tr>
               ))}

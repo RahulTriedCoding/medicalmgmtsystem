@@ -2,8 +2,15 @@
 
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
+import { AppointmentNotesButton } from "@/components/notes/appointment-notes";
 
-export default function RowActions({ id }: { id: string }) {
+type Props = {
+  id: string;
+  patientName?: string | null;
+  doctorName?: string | null;
+};
+
+export default function RowActions({ id, patientName, doctorName }: Props) {
   const router = useRouter();
 
   async function cancel() {
@@ -22,7 +29,8 @@ export default function RowActions({ id }: { id: string }) {
   }
 
   return (
-    <div className="flex gap-2">
+    <div className="flex gap-2 flex-wrap">
+      <AppointmentNotesButton appointmentId={id} patientName={patientName} doctorName={doctorName} />
       <button onClick={cancel} className="rounded-md border px-2 py-1 text-xs">Cancel</button>
       <button onClick={remove} className="rounded-md border px-2 py-1 text-xs">Delete</button>
     </div>

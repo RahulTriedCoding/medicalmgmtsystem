@@ -14,6 +14,8 @@ type Option = { id: string; label: string };
 type AppointmentRelation<T> = T | T[] | null;
 type AppointmentRow = {
   id: string;
+  patient_id: string;
+  doctor_id: string | null;
   starts_at: string;
   ends_at: string;
   status: string;
@@ -54,6 +56,8 @@ export default async function AppointmentsPage() {
   const rows = (apptsRaw ?? []) as AppointmentRow[];
   const appts = rows.map((a) => ({
     id: a.id,
+    patient_id: a.patient_id,
+    doctor_id: a.doctor_id,
     starts_at: a.starts_at,
     ends_at: a.ends_at,
     status: a.status,
@@ -97,7 +101,9 @@ export default async function AppointmentsPage() {
                   </td>
                   <td className="p-2 capitalize">{a.status}</td>
                   <td className="p-2">{a.reason}</td>
-                  <td className="p-2"><RowActions id={a.id} /></td>
+                  <td className="p-2">
+                    <RowActions id={a.id} patientName={a.patient_name} doctorName={a.doctor_name} />
+                  </td>
                 </tr>
               ))}
             </tbody>
