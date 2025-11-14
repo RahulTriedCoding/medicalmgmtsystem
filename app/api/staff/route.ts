@@ -144,7 +144,7 @@ export async function POST(req: Request) {
   if (supabaseAdmin) {
     const invite = await supabaseAdmin.auth.admin.inviteUserByEmail(parsed.data.email, {
       data: { full_name: parsed.data.full_name },
-      emailRedirectTo: baseRedirect,
+      redirectTo: baseRedirect,
     });
 
     if (invite.error) {

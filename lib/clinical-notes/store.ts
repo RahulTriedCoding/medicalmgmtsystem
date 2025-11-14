@@ -36,10 +36,16 @@ type NoteRow = {
   template_key: string | null;
   created_at: string;
   updated_at: string;
-  doctor: { full_name: string | null } | null;
+  doctor: { full_name: string | null } | { full_name: string | null }[] | null;
 };
 
+function normalizeRelation<T>(value: T | T[] | null | undefined): T | null {
+  if (!value) return null;
+  return Array.isArray(value) ? value[0] ?? null : value;
+}
+
 function mapNote(row: NoteRow): ClinicalNote {
+  const doctorRelation = normalizeRelation(row.doctor);
   return {
     id: row.id,
     appointment_id: row.appointment_id,
@@ -49,7 +55,7 @@ function mapNote(row: NoteRow): ClinicalNote {
     template_key: row.template_key ?? null,
     created_at: row.created_at,
     updated_at: row.updated_at,
-    doctor_name: row.doctor?.full_name ?? null,
+    doctor_name: doctorRelation?.full_name ?? null,
   };
 }
 
@@ -101,7 +107,7 @@ export async function createClinicalNote(
       note_text: trimmed,
       template_key: payload.templateKey ?? null,
     })
-    .select<NoteRow>(NOTE_COLUMNS)
+    .select(NOTE_COLUMNS)
     .single();
 
   if (error) {
@@ -123,7 +129,7 @@ export async function getClinicalNotesForAppointment(
   const supabase = await ensureClient(client);
   let query = supabase
     .from("clinical_notes")
-    .select<NoteRow>(NOTE_COLUMNS)
+    .select(NOTE_COLUMNS)
     .eq("appointment_id", appointmentId)
     .order("created_at", { ascending: false });
 
@@ -146,7 +152,7 @@ export async function getClinicalNotesForPatient(
   const supabase = await ensureClient(client);
   let query = supabase
     .from("clinical_notes")
-    .select<NoteRow>(NOTE_COLUMNS)
+    .select(NOTE_COLUMNS)
     .eq("patient_id", patientId)
     .order("created_at", { ascending: false });
 

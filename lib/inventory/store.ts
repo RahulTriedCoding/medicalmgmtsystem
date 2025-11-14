@@ -64,7 +64,7 @@ export async function getInventoryItems(
   const supabase = await ensureClient(client);
   const { data, error } = await supabase
     .from("inventory_items")
-    .select<InventoryRow>("id, name, description, unit, quantity, low_stock_threshold, updated_at")
+    .select("id, name, description, unit, quantity, low_stock_threshold, updated_at")
     .order("name", { ascending: true });
 
   if (error) {
@@ -125,7 +125,7 @@ async function fetchInventoryItem(
 ): Promise<InventoryItem | null> {
   const { data, error } = await supabase
     .from("inventory_items")
-    .select<InventoryRow>("id, name, description, unit, quantity, low_stock_threshold, updated_at")
+    .select("id, name, description, unit, quantity, low_stock_threshold, updated_at")
     .eq("id", itemId)
     .maybeSingle();
 
@@ -212,7 +212,7 @@ export async function consumeInventory(
   const ids = requirements.map((req) => req.item_id);
   const { data, error } = await supabase
     .from("inventory_items")
-    .select<InventoryQuantityRow>("id, name, quantity")
+    .select("id, name, quantity")
     .in("id", ids);
 
   if (error) {

@@ -52,6 +52,17 @@ export type DashboardMetrics = {
   lowStockItems: DashboardInventoryAlert[];
 };
 
+function isAppointmentRow(value: unknown): value is AppointmentRow {
+  if (!value || typeof value !== "object") return false;
+  const record = value as Partial<AppointmentRow>;
+  return (
+    typeof record.id === "string" &&
+    typeof record.starts_at === "string" &&
+    typeof record.ends_at === "string" &&
+    typeof record.status === "string"
+  );
+}
+
 function pickFirst<T>(value: T | T[] | null | undefined): T | null {
   if (Array.isArray(value)) {
     return value[0] ?? null;
@@ -117,7 +128,10 @@ export async function fetchDashboardData(supabase: SupabaseClient): Promise<Dash
 
   const patientCount = patientsQuery.count ?? 0;
   const todaysAppointmentsCount = todaysAppointmentsQuery.count ?? 0;
-  const upcomingAppointmentsRaw: AppointmentRow[] = upcomingAppointmentsQuery.data ?? [];
+  const rawAppointments: unknown[] = Array.isArray(upcomingAppointmentsQuery.data)
+    ? upcomingAppointmentsQuery.data
+    : [];
+  const upcomingAppointmentsRaw = rawAppointments.filter(isAppointmentRow);
 
   const upcomingAppointments: DashboardAppointment[] = upcomingAppointmentsRaw.map((row) => {
     const patient = pickFirst(row.patients);

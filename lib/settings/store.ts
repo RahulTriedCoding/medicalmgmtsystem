@@ -89,7 +89,7 @@ function mapRowToSettings(row: SettingsRow): AppSettings {
 async function fetchSettingsRow(supabase: ServerClient): Promise<SettingsRow | null> {
   const { data, error } = await supabase
     .from("app_settings")
-    .select<SettingsRow>(
+    .select(
       "clinic_name, clinic_email, clinic_phone, clinic_address, currency, timezone, default_appointment_duration, enable_email_notifications, enable_sms_notifications, billing_notes"
     )
     .eq("singleton", true)
@@ -119,7 +119,7 @@ async function insertDefaultSettings(supabase: ServerClient, staffId: string | n
       billing_notes: defaults.billing_notes,
       updated_by: staffId,
     })
-    .select<SettingsRow>(
+    .select(
       "clinic_name, clinic_email, clinic_phone, clinic_address, currency, timezone, default_appointment_duration, enable_email_notifications, enable_sms_notifications, billing_notes"
     )
     .single();
@@ -166,7 +166,7 @@ export async function saveSettings(
       updated_by: staffId,
     })
     .eq("singleton", true)
-    .select<SettingsRow>("clinic_name, clinic_email, clinic_phone, clinic_address, currency, timezone, default_appointment_duration, enable_email_notifications, enable_sms_notifications, billing_notes")
+    .select("clinic_name, clinic_email, clinic_phone, clinic_address, currency, timezone, default_appointment_duration, enable_email_notifications, enable_sms_notifications, billing_notes")
     .single();
 
   if (error) {
