@@ -19,13 +19,20 @@ const items = [
   { href: "/settings", label: "Settings", icon: Settings },
 ];
 
-export default function AppShell({ children }: { children: React.ReactNode }) {
+type AppShellProps = {
+  children: React.ReactNode;
+  clinicName?: string;
+};
+
+export default function AppShell({ children, clinicName }: AppShellProps) {
   const pathname = usePathname();
 
   return (
     <div className="min-h-dvh grid grid-cols-[260px_1fr]">
       <aside className="flex min-h-dvh flex-col border-r bg-background">
-        <div className="p-4 font-semibold text-lg">Medical MMS</div>
+        <div className="p-4 font-semibold text-lg truncate">
+          {clinicName?.trim() || "Medical MMS"}
+        </div>
 
         <nav className="px-2 space-y-1 flex-1">
           {items.map(({ href, label, icon: Icon }) => {

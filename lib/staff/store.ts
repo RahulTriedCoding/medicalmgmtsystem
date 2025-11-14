@@ -10,8 +10,6 @@ export type StaffContact = {
 
 type ServerClient = SupabaseClient;
 
-// TODO: copy any existing staff-directory.json entries into staff_contacts before enabling this in prod.
-
 async function ensureClient(client?: ServerClient) {
   return client ?? (await createSupabaseServerClient());
 }

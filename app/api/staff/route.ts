@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { randomUUID } from "crypto";
+import type { User } from "@supabase/supabase-js";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { STAFF_ROLES } from "@/lib/staff/types";
 import { getStaffContacts, upsertStaffContact } from "@/lib/staff/store";
@@ -49,6 +50,32 @@ async function requireRole(
 }
 
 const STAFF_COLUMNS = "id, full_name, email, role, auth_user_id, created_at";
+
+async function findAuthUserByEmail(adminClient: ReturnType<typeof createSupabaseAdminClient>, email: string) {
+  if (!adminClient) return null;
+
+  const normalized = email.trim().toLowerCase();
+  let page = 1;
+  const perPage = 100;
+
+  while (true) {
+    const { data, error } = await adminClient.auth.admin.listUsers({ page, perPage });
+    if (error) {
+      throw new Error(error.message);
+    }
+    const users: User[] = data?.users ?? [];
+    const match = users.find((user) => (user.email ?? "").toLowerCase() === normalized);
+    if (match) {
+      return match;
+    }
+    if (users.length < perPage) {
+      break;
+    }
+    page += 1;
+  }
+
+  return null;
+}
 
 export async function GET() {
   const supabase = await createSupabaseServerClient();
@@ -110,6 +137,7 @@ export async function POST(req: Request) {
   const baseRedirect = `${redirectTo.replace(/\/$/, "")}/auth/callback`;
 
   let authUserId: string | null = null;
+  let pendingInvite = true;
 
   const supabaseAdmin = createSupabaseAdminClient();
 
@@ -120,12 +148,37 @@ export async function POST(req: Request) {
     });
 
     if (invite.error) {
-      return NextResponse.json({ error: invite.error.message }, { status: 400 });
-    }
+      if (invite.error.message.toLowerCase().includes("already")) {
+        const existingUser = await findAuthUserByEmail(supabaseAdmin, parsed.data.email);
+        if (!existingUser) {
+          return NextResponse.json({ error: invite.error.message }, { status: 400 });
+        }
 
-    authUserId = invite.data.user?.id ?? null;
-    if (!authUserId) {
-      return NextResponse.json({ error: "Failed to obtain invited user id" }, { status: 500 });
+        authUserId = existingUser.id;
+        pendingInvite = true;
+
+        const anonClient = createSupabaseServerAnonClient();
+        if (!anonClient) {
+          return NextResponse.json({ error: "Supabase credentials missing" }, { status: 500 });
+        }
+
+        const magicLink = await anonClient.auth.signInWithOtp({
+          email: parsed.data.email,
+          options: { emailRedirectTo: baseRedirect },
+        });
+
+        if (magicLink.error) {
+          return NextResponse.json({ error: magicLink.error.message }, { status: 400 });
+        }
+      } else {
+        return NextResponse.json({ error: invite.error.message }, { status: 400 });
+      }
+    } else {
+      authUserId = invite.data.user?.id ?? null;
+      if (!authUserId) {
+        return NextResponse.json({ error: "Failed to obtain invited user id" }, { status: 500 });
+      }
+      pendingInvite = true;
     }
   } else {
     const anonClient = createSupabaseServerAnonClient();
@@ -172,10 +225,13 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: error.message }, { status: 400 });
   }
 
-  await upsertStaffContact(data.id, parsed.data.phone ?? null, true, supabase);
+  await upsertStaffContact(data.id, parsed.data.phone ?? null, pendingInvite, supabase);
 
   return NextResponse.json(
-    { ok: true, staff: { ...data, phone: parsed.data.phone ?? null, pending: true } },
+    {
+      ok: true,
+      staff: { ...data, phone: parsed.data.phone ?? null, pending: pendingInvite },
+    },
     { status: 201 }
   );
 }

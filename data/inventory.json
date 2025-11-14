@@ -4,9 +4,9 @@
     "name": "Syringe 5ml",
     "description": "Disposable syringe for injections",
     "unit": "pcs",
-    "quantity": 50,
+    "quantity": 48,
     "lowStockThreshold": 10,
-    "updated_at": "2025-11-13T13:44:51.307Z"
+    "updated_at": "2025-11-13T20:03:14.414Z"
   },
   {
     "id": "paracetamol-500mg",
@@ -34,5 +34,14 @@
     "quantity": 51,
     "lowStockThreshold": 0,
     "updated_at": "2025-11-13T13:45:10.867Z"
+  },
+  {
+    "id": "1f15f9eb-20f1-4328-ae81-8ad59b62b44a",
+    "name": "pantaprazole",
+    "description": "test",
+    "unit": "10",
+    "quantity": 60,
+    "lowStockThreshold": 0,
+    "updated_at": "2025-11-13T19:59:01.749Z"
   }
 ]

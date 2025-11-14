@@ -3,6 +3,7 @@ import { z } from "zod";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { STAFF_ROLES } from "@/lib/staff/types";
 import { deleteStaffContact, upsertStaffContact, getStaffContacts } from "@/lib/staff/store";
+import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 
 type SupabaseServerClient = Awaited<ReturnType<typeof createSupabaseServerClient>>;
 type GuardResult = { response: NextResponse } | { role: string; staffId: string | null };
@@ -142,7 +143,7 @@ export async function DELETE(_: Request, { params }: { params: ParamsShape }) {
     .from("users")
     .delete()
     .eq("id", id)
-    .select("id")
+    .select("id, auth_user_id")
     .maybeSingle();
 
   if (error) {
@@ -154,6 +155,13 @@ export async function DELETE(_: Request, { params }: { params: ParamsShape }) {
   }
 
   await deleteStaffContact(id, supabase);
+
+  if (data?.auth_user_id) {
+    const adminClient = createSupabaseAdminClient();
+    if (adminClient) {
+      await adminClient.auth.admin.deleteUser(data.auth_user_id).catch(() => {});
+    }
+  }
 
   return NextResponse.json({ ok: true });
 }

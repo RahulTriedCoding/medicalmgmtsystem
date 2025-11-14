@@ -54,8 +54,6 @@ function normalize(payload: Partial<AppSettings>): AppSettings {
 
 type ServerClient = SupabaseClient;
 
-// TODO: migrate values from settings.json into app_settings.
-
 async function ensureClient(client?: ServerClient) {
   return client ?? (await createSupabaseServerClient());
 }
@@ -91,11 +89,13 @@ function mapRowToSettings(row: SettingsRow): AppSettings {
 async function fetchSettingsRow(supabase: ServerClient): Promise<SettingsRow | null> {
   const { data, error } = await supabase
     .from("app_settings")
-    .select<SettingsRow>("clinic_name, clinic_email, clinic_phone, clinic_address, currency, timezone, default_appointment_duration, enable_email_notifications, enable_sms_notifications, billing_notes")
+    .select<SettingsRow>(
+      "clinic_name, clinic_email, clinic_phone, clinic_address, currency, timezone, default_appointment_duration, enable_email_notifications, enable_sms_notifications, billing_notes"
+    )
     .eq("singleton", true)
     .maybeSingle();
 
-  if (error && error.code !== "PGRST116") {
+  if (error) {
     throw new Error(error.message);
   }
 
@@ -166,9 +166,7 @@ export async function saveSettings(
       updated_by: staffId,
     })
     .eq("singleton", true)
-    .select<SettingsRow>(
-      "clinic_name, clinic_email, clinic_phone, clinic_address, currency, timezone, default_appointment_duration, enable_email_notifications, enable_sms_notifications, billing_notes"
-    )
+    .select<SettingsRow>("clinic_name, clinic_email, clinic_phone, clinic_address, currency, timezone, default_appointment_duration, enable_email_notifications, enable_sms_notifications, billing_notes")
     .single();
 
   if (error) {

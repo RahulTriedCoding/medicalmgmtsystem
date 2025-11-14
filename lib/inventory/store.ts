@@ -41,7 +41,8 @@ function isSchemaMissing(error?: PostgrestError | null) {
   return (
     error.code === "42P01" ||
     error.code === "42703" ||
-    /does not exist/i.test(message)
+    /does not exist/i.test(message) ||
+    /schema cache/i.test(message)
   );
 }
 

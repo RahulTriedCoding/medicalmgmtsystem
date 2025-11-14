@@ -37,8 +37,6 @@ type PrescriptionRow = {
   lines?: PrescriptionLineRow[] | null;
 };
 
-// TODO: move any existing prescriptions.json records into the prescriptions table prior to release.
-
 async function ensureClient(client?: ServerClient) {
   return client ?? (await createSupabaseServerClient());
 }
@@ -91,11 +89,6 @@ export async function getPrescriptions(
   return rows.map(mapPrescription);
 }
 
-export async function savePrescriptions(_items: StoredPrescription[]) {
-  // Legacy no-op. Preserve signature for backward compatibility.
-  void _items;
-}
-
 export async function addPrescription(
   payload: Omit<StoredPrescription, "id" | "created_at">,
   client?: ServerClient
@@ -122,18 +115,17 @@ export async function addPrescription(
   const linesPayload = payload.lines.map((line) => ({
     id: randomUUID(),
     prescription_id: prescriptionId,
-    inventory_item_id: line.item_id,
+    inventory_item_id: line.item_id || null,
     name: line.name ?? "Item",
     dosage: line.dosage,
     quantity: line.quantity,
   }));
 
-  const { error: lineError } = await supabase
-    .from("prescription_lines")
-    .insert(linesPayload);
-
-  if (lineError) {
-    throw new Error(lineError.message);
+  if (linesPayload.length) {
+    const { error: lineError } = await supabase.from("prescription_lines").insert(linesPayload);
+    if (lineError) {
+      throw new Error(lineError.message);
+    }
   }
 
   const full = await findPrescription(prescriptionId, supabase);
@@ -186,7 +178,7 @@ export async function findPrescription(
     .eq("id", id)
     .maybeSingle();
 
-  if (error && error.code !== "PGRST116") {
+  if (error) {
     throw new Error(error.message);
   }
 

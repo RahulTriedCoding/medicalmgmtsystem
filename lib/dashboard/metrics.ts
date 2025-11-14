@@ -66,12 +66,28 @@ function lowStock(items: InventoryItem[]): InventoryItem[] {
   });
 }
 
+function withMissingTableFallback<T>(promise: Promise<T>, fallback: T, pattern: RegExp) {
+  return promise.catch((error) => {
+    if (error instanceof Error && pattern.test(error.message)) {
+      return fallback;
+    }
+    throw error;
+  });
+}
+
 export async function fetchDashboardData(supabase: SupabaseClient): Promise<DashboardMetrics> {
   const todayStart = new Date();
   todayStart.setHours(0, 0, 0, 0);
   const todayEnd = new Date(todayStart);
   todayEnd.setDate(todayStart.getDate() + 1);
   const now = new Date();
+
+  const invoicesPromise = withMissingTableFallback(getInvoices(supabase), [], /billing tables/i);
+  const inventoryPromise = withMissingTableFallback(
+    getInventoryItems(supabase),
+    [],
+    /inventory tables/i
+  );
 
   const [
     patientsQuery,
@@ -95,8 +111,8 @@ export async function fetchDashboardData(supabase: SupabaseClient): Promise<Dash
       .gte("starts_at", now.toISOString())
       .order("starts_at", { ascending: true })
       .limit(5),
-    getInvoices(supabase),
-    getInventoryItems(supabase),
+    invoicesPromise,
+    inventoryPromise,
   ]);
 
   const patientCount = patientsQuery.count ?? 0;
