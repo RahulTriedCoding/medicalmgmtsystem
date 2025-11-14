@@ -5,7 +5,7 @@ import { deletePrescription, findPrescription } from "@/lib/prescriptions/store"
 
 type SupabaseServerClient = Awaited<ReturnType<typeof createSupabaseServerClient>>;
 type GuardResult = { response: NextResponse } | { role: string };
-type ParamsShape = { id?: string } | Promise<{ id?: string }>;
+type ParamsShape = Promise<{ id?: string }>;
 
 const IdSchema = z.object({ id: z.string().uuid() });
 

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { toast } from "sonner";
 
 type ClinicalNote = {
@@ -74,7 +74,7 @@ function NotesDialog({ appointmentId, patientName, doctorName, onClose }: NotesD
   const [noteText, setNoteText] = useState("");
   const [templateKey, setTemplateKey] = useState<string | null>(null);
 
-  async function loadNotes() {
+  const loadNotes = useCallback(async () => {
     setLoading(true);
     setError(null);
     try {
@@ -89,11 +89,11 @@ function NotesDialog({ appointmentId, patientName, doctorName, onClose }: NotesD
     } finally {
       setLoading(false);
     }
-  }
+  }, [appointmentId]);
 
   useEffect(() => {
     loadNotes();
-  }, [appointmentId]);
+  }, [loadNotes]);
 
   async function submitNote() {
     if (!noteText.trim()) {

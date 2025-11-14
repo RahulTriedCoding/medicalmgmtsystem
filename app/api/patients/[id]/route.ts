@@ -2,10 +2,10 @@
 import { NextResponse } from "next/server";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 
-type ParamsShape = { id?: string } | Promise<{ id?: string }>;
+type ParamsShape = Promise<{ id?: string }>;
 
 export async function PATCH(request: Request, { params }: { params: ParamsShape }) {
-  // params may be a Promise (Next.js dynamic APIs). unwrap it:
+  // params comes in as a promise in Next.js dynamic APIs.
   const resolvedParams = await params;
   const id = resolvedParams?.id;
 

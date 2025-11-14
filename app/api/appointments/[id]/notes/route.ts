@@ -8,7 +8,7 @@ import {
 
 type SupabaseServerClient = Awaited<ReturnType<typeof createSupabaseServerClient>>;
 type GuardResult = { response: NextResponse } | { role: string; staffId: string | null };
-type ParamsShape = { id?: string } | Promise<{ id?: string }>;
+type ParamsShape = Promise<{ id?: string }>;
 
 const BodySchema = z.object({
   note_text: z.string().trim().min(3).max(5000),

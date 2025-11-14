@@ -3,7 +3,7 @@ import { z } from "zod";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 
 type SupabaseServerClient = Awaited<ReturnType<typeof createSupabaseServerClient>>;
-type ParamsShape = { id?: string } | Promise<{ id?: string }>;
+type ParamsShape = Promise<{ id?: string }>;
 
 const IdSchema = z.object({ id: z.string().uuid() });
 const PatchSchema = z.object({

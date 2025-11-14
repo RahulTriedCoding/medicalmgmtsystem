@@ -7,7 +7,7 @@ import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 
 type SupabaseServerClient = Awaited<ReturnType<typeof createSupabaseServerClient>>;
 type GuardResult = { response: NextResponse } | { role: string; staffId: string | null };
-type ParamsShape = { id?: string } | Promise<{ id?: string }>;
+type ParamsShape = Promise<{ id?: string }>;
 
 const RoleEnum = z.enum(STAFF_ROLES);
 

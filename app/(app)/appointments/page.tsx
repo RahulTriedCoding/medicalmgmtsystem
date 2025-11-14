@@ -24,6 +24,18 @@ type AppointmentRow = {
   doctors: AppointmentRelation<{ full_name: string | null }>;
 };
 
+function isAppointmentRow(value: unknown): value is AppointmentRow {
+  if (!value || typeof value !== "object") return false;
+  const record = value as Partial<AppointmentRow>;
+  return (
+    typeof record.id === "string" &&
+    typeof record.patient_id === "string" &&
+    typeof record.starts_at === "string" &&
+    typeof record.ends_at === "string" &&
+    typeof record.status === "string"
+  );
+}
+
 export default async function AppointmentsPage() {
   const supabase = await createSupabaseServerClient();
 
@@ -53,7 +65,7 @@ export default async function AppointmentsPage() {
     .limit(200);
 
   // 🔧 flatten nested arrays/objects so TS is happy
-  const rows = (apptsRaw ?? []) as AppointmentRow[];
+  const rows: AppointmentRow[] = Array.isArray(apptsRaw) ? apptsRaw.filter(isAppointmentRow) : [];
   const appts = rows.map((a) => ({
     id: a.id,
     patient_id: a.patient_id,
