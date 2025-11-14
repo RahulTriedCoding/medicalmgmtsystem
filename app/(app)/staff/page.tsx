@@ -98,7 +98,7 @@ export default async function StaffPage() {
         <NewStaffButton />
       </div>
 
-      {error && <div className="text-sm text-red-600">Error: {error.message}</div>}
+      {error && <div className="text-sm text-red-400">Error: {error.message}</div>}
 
       <div className="overflow-hidden rounded-lg border">
         <table className="w-full text-sm">

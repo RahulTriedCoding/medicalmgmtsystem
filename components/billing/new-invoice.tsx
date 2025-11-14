@@ -247,7 +247,7 @@ export function NewInvoiceButton({ patients }: { patients: Option[] }) {
                 </footer>
               </section>
 
-              <div className="flex items-center gap-3">
+              <div className="flex items-center justify-end gap-4">
                 <button
                   disabled={loading}
                   className="btn-primary disabled:opacity-60"
@@ -256,7 +256,7 @@ export function NewInvoiceButton({ patients }: { patients: Option[] }) {
                 </button>
                 <button
                   type="button"
-                  className="btn-ghost text-sm"
+                  className="btn-secondary text-sm"
                   onClick={resetForm}
                 >
                   Reset form

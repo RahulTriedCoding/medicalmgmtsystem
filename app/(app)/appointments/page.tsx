@@ -36,6 +36,23 @@ function isAppointmentRow(value: unknown): value is AppointmentRow {
   );
 }
 
+function appointmentStatusClass(status: string) {
+  switch (status) {
+    case "scheduled":
+      return "border border-sky-400/40 bg-sky-500/10 text-sky-100";
+    case "confirmed":
+      return "border border-cyan-400/40 bg-cyan-500/10 text-cyan-100";
+    case "completed":
+      return "border border-emerald-400/40 bg-emerald-500/10 text-emerald-100";
+    case "cancelled":
+      return "border border-slate-500/40 bg-slate-600/20 text-slate-200";
+    case "no_show":
+      return "border border-rose-400/40 bg-rose-500/10 text-rose-100";
+    default:
+      return "border border-amber-400/40 bg-amber-500/10 text-amber-100";
+  }
+}
+
 export default async function AppointmentsPage() {
   const supabase = await createSupabaseServerClient();
 
@@ -83,13 +100,16 @@ export default async function AppointmentsPage() {
 
   return (
     <div className="space-y-4">
-      <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-semibold text-white">Appointments</h1>
+      <div className="flex flex-wrap items-center justify-between gap-4">
+        <div>
+          <h1 className="text-2xl font-semibold text-white">Appointments</h1>
+          <p className="text-sm text-muted-foreground">Monitor today&apos;s schedule and take timely actions.</p>
+        </div>
         <NewAppointmentButton patients={patients} doctors={doctors} />
       </div>
 
       {error ? (
-        <div className="text-red-600 text-sm">Error: {error.message}</div>
+        <div className="text-red-400 text-sm">Error: {error.message}</div>
       ) : !appts.length ? (
         <div className="text-sm text-muted-foreground">No upcoming appointments.</div>
       ) : (
@@ -113,7 +133,11 @@ export default async function AppointmentsPage() {
                   <td className="p-2">
                     {fmt(a.starts_at)} – {fmt(a.ends_at)}
                   </td>
-                  <td className="p-2 capitalize">{a.status}</td>
+                  <td className="p-2">
+                    <span className={`badge ${appointmentStatusClass(a.status)}`}>
+                      {a.status.replace(/_/g, " ")}
+                    </span>
+                  </td>
                   <td className="p-2">{a.reason}</td>
                   <td className="p-2">
                     <RowActions id={a.id} patientName={a.patient_name} doctorName={a.doctor_name} />

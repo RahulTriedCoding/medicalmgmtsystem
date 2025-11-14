@@ -18,7 +18,10 @@ export default async function InventoryPage() {
   }
   return (
     <div className="space-y-4">
-      <h1 className="text-2xl font-semibold text-white">Inventory</h1>
+      <div>
+        <h1 className="text-2xl font-semibold text-white">Inventory</h1>
+        <p className="text-sm text-muted-foreground">Monitor stock levels and keep critical supplies available.</p>
+      </div>
       {warning ? (
         <div className="rounded-2xl border border-amber-400/40 bg-amber-500/10 px-3 py-2 text-sm text-amber-100">
           {warning}

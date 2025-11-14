@@ -165,7 +165,7 @@ export default function EditPatientButton({ patient }: { patient: Patient }) {
                 />
               </div>
 
-              <div className="mt-1">
+              <div className="mt-4 flex justify-end">
                 <button disabled={loading} className="btn-primary disabled:opacity-60">
                   {loading ? "Saving..." : "Save"}
                 </button>

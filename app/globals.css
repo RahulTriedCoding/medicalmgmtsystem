@@ -46,72 +46,72 @@
 :root {
   color-scheme: dark;
   --radius: 0.75rem;
-  --background: #050505;
-  --foreground: #f5f5f5;
-  --card: #10131a;
-  --card-foreground: #f8fafc;
-  --popover: #090b11;
-  --popover-foreground: #f8fafc;
-  --primary: #0ea5e9;
-  --primary-foreground: #e0f2ff;
-  --secondary: #1b1f2a;
+  --background: #020617;
+  --foreground: #f9fafb;
+  --card: #070d1c;
+  --card-foreground: #f3f7ff;
+  --popover: #030817;
+  --popover-foreground: #f9fbff;
+  --primary: #22c4b8;
+  --primary-foreground: #e7fbff;
+  --secondary: #0b152b;
   --secondary-foreground: #e2e8f0;
-  --muted: #13151e;
-  --muted-foreground: #a3a3a3;
-  --accent: #162032;
-  --accent-foreground: #e5f1ff;
+  --muted: #0d1629;
+  --muted-foreground: #a0abc2;
+  --accent: #0e1729;
+  --accent-foreground: #d8e7ff;
   --destructive: #ef4444;
-  --border: #232632;
-  --input: #161924;
-  --ring: #3b82f6;
-  --chart-1: #0ea5e9;
+  --border: #1b243a;
+  --input: #0f192e;
+  --ring: #38bdf8;
+  --chart-1: #22c4b8;
   --chart-2: #22c55e;
-  --chart-3: #a855f7;
+  --chart-3: #60a5fa;
   --chart-4: #f59e0b;
   --chart-5: #ef4444;
-  --sidebar: #090c12;
-  --sidebar-foreground: #f3f4f7;
-  --sidebar-primary: #0ea5e9;
+  --sidebar: #020819;
+  --sidebar-foreground: #f3f7ff;
+  --sidebar-primary: #22c4b8;
   --sidebar-primary-foreground: #f8fafc;
-  --sidebar-accent: #111828;
-  --sidebar-accent-foreground: #f3f4f7;
-  --sidebar-border: #1c1f2b;
-  --sidebar-ring: #0ea5e9;
+  --sidebar-accent: #081125;
+  --sidebar-accent-foreground: #f3f7ff;
+  --sidebar-border: #0f1a30;
+  --sidebar-ring: #22c4b8;
 }
 
 .dark {
   color-scheme: dark;
-  --background: #040506;
-  --foreground: #f5f5f5;
-  --card: #0f111a;
-  --card-foreground: #f5f5f5;
-  --popover: #090b11;
-  --popover-foreground: #f8fafc;
-  --primary: #0ea5e9;
-  --primary-foreground: #f0f9ff;
-  --secondary: #1b1f2a;
+  --background: #010612;
+  --foreground: #f9fafb;
+  --card: #091025;
+  --card-foreground: #f3f7ff;
+  --popover: #020819;
+  --popover-foreground: #f9fbff;
+  --primary: #22c4b8;
+  --primary-foreground: #ecfeff;
+  --secondary: #0b152b;
   --secondary-foreground: #e2e8f0;
-  --muted: #11131c;
-  --muted-foreground: #a3a3a3;
-  --accent: #142032;
+  --muted: #0b1529;
+  --muted-foreground: #94a3b8;
+  --accent: #0d1b31;
   --accent-foreground: #f8fafc;
   --destructive: #ef4444;
-  --border: #262a36;
-  --input: #151821;
-  --ring: #3b82f6;
-  --chart-1: #0ea5e9;
+  --border: #14213b;
+  --input: #0f192c;
+  --ring: #38bdf8;
+  --chart-1: #22c4b8;
   --chart-2: #22c55e;
-  --chart-3: #a855f7;
+  --chart-3: #60a5fa;
   --chart-4: #f59e0b;
   --chart-5: #ef4444;
-  --sidebar: #080a10;
-  --sidebar-foreground: #f3f4f7;
-  --sidebar-primary: #0ea5e9;
+  --sidebar: #020819;
+  --sidebar-foreground: #f3f7ff;
+  --sidebar-primary: #22c4b8;
   --sidebar-primary-foreground: #f8fafc;
-  --sidebar-accent: #121826;
-  --sidebar-accent-foreground: #f3f4f7;
-  --sidebar-border: #1b1f2a;
-  --sidebar-ring: #0ea5e9;
+  --sidebar-accent: #0c192d;
+  --sidebar-accent-foreground: #f3f7ff;
+  --sidebar-border: #101c33;
+  --sidebar-ring: #22c4b8;
 }
 
 @layer base {
@@ -144,45 +144,50 @@
   table {
     border-collapse: separate;
     border-spacing: 0;
-    background: color-mix(in srgb, var(--card) 94%, transparent);
+    background: color-mix(in srgb, var(--card) 92%, transparent);
   }
 
   th {
-    background: color-mix(in srgb, var(--card) 85%, #0a0a0a 15%);
+    background: color-mix(in srgb, var(--card) 85%, #10182a 20%);
     color: var(--muted-foreground);
     font-weight: 600;
-    letter-spacing: 0.01em;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
   }
 
   th,
   td {
-    border-bottom: 1px solid color-mix(in srgb, var(--border) 90%, transparent);
+    border-bottom: 1px solid color-mix(in srgb, var(--border) 100%, transparent);
   }
 
   tbody tr:nth-child(even) {
     background: color-mix(in srgb, var(--card) 80%, transparent);
   }
+
+  tbody tr:hover {
+    background: color-mix(in srgb, #0a1a2f 65%, transparent);
+  }
 }
 
 @layer components {
   .surface {
-    @apply rounded-3xl border border-white/10 bg-white/[0.04] shadow-[0_25px_80px_rgba(5,5,5,0.55)] backdrop-blur;
+    @apply rounded-3xl border border-white/5 bg-[rgba(10,19,36,0.85)] shadow-[0_30px_90px_rgba(0,0,0,0.65)] backdrop-blur;
   }
 
   .btn-primary {
-    @apply inline-flex items-center justify-center rounded-2xl border border-transparent bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground shadow-[0_15px_35px_rgba(14,165,233,0.35)] transition hover:bg-primary/90 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary;
+    @apply inline-flex items-center justify-center rounded-lg border border-cyan-400/30 bg-primary/90 px-6 py-2.5 text-base font-semibold text-primary-foreground shadow-[0_6px_18px_rgba(34,196,184,0.25)] transition hover:bg-primary focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary/50;
   }
 
   .btn-secondary {
-    @apply inline-flex items-center justify-center rounded-2xl border border-white/10 bg-white/5 px-4 py-2 text-sm font-medium text-foreground transition hover:bg-white/10 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary;
+    @apply inline-flex items-center justify-center rounded-md border border-cyan-400/40 bg-transparent px-6 py-2.5 text-base font-medium text-primary transition hover:bg-cyan-400/10 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary/40;
   }
 
   .btn-ghost {
-    @apply inline-flex items-center justify-center rounded-2xl border border-transparent bg-transparent px-3 py-2 text-sm text-muted-foreground transition hover:text-foreground hover:bg-white/5 focus-visible:outline focus-visible:outline-2 focus-visible:outline-primary/40;
+    @apply inline-flex items-center justify-center rounded-md border border-transparent bg-transparent px-4 py-2.5 text-base text-muted-foreground transition hover:text-primary hover:bg-white/5 focus-visible:outline focus-visible:outline-2 focus-visible:outline-primary/30;
   }
 
   .btn-danger {
-    @apply inline-flex items-center justify-center rounded-2xl border border-transparent bg-destructive/90 px-4 py-2 text-sm font-medium text-white shadow-[0_10px_25px_rgba(239,68,68,0.4)] transition hover:bg-destructive;
+    @apply inline-flex items-center justify-center rounded-lg border border-rose-400/30 bg-destructive/90 px-6 py-2.5 text-base font-medium text-white shadow-[0_6px_18px_rgba(239,68,68,0.25)] transition hover:bg-destructive focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-rose-400/40;
   }
 
   .field {

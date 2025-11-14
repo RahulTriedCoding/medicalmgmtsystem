@@ -179,7 +179,7 @@ function NotesDialog({ appointmentId, patientName, doctorName, onClose }: NotesD
             {loading ? (
               <p className="text-sm text-muted-foreground">Loading...</p>
             ) : error ? (
-              <p className="text-sm text-red-600">{error}</p>
+              <p className="text-sm text-red-400">{error}</p>
             ) : !notes.length ? (
               <p className="text-sm text-muted-foreground">No notes for this appointment.</p>
             ) : (

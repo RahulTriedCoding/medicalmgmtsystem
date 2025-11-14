@@ -25,12 +25,6 @@ type InventoryRow = {
   updated_at: string;
 };
 
-type InventoryQuantityRow = {
-  id: string;
-  name: string;
-  quantity: number;
-};
-
 async function ensureClient(client?: ServerClient) {
   return client ?? (await createSupabaseServerClient());
 }

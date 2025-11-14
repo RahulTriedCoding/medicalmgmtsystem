@@ -122,14 +122,14 @@ export function InventoryManager({ initialItems }: Props) {
               rows={2}
             />
           </label>
-          <div className="md:col-span-2 flex items-center gap-3">
+          <div className="md:col-span-2 flex items-center justify-end gap-4">
             <button
               disabled={formState.loading}
               className="btn-primary disabled:opacity-60"
             >
               {formState.loading ? "Saving..." : "Save item"}
             </button>
-            {formState.error && <p className="text-sm text-red-600">{formState.error}</p>}
+            {formState.error && <p className="text-sm text-red-400">{formState.error}</p>}
             {formState.success && <p className="text-sm text-green-600">{formState.success}</p>}
           </div>
         </form>
@@ -164,7 +164,7 @@ export function InventoryManager({ initialItems }: Props) {
                     </td>
                     <td className="p-2 text-muted-foreground">{item.description ?? "—"}</td>
                     <td className="p-2">
-                      <span className={low ? "text-red-600 font-semibold" : ""}>{item.quantity}</span>
+                      <span className={low ? "text-amber-300 font-semibold" : ""}>{item.quantity}</span>
                     </td>
                     <td className="p-2">{item.lowStockThreshold ?? 0}</td>
                     <td className="p-2">

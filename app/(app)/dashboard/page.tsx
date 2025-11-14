@@ -19,25 +19,31 @@ function formatDateTime(value: string) {
 
 function statusBadgeClass(status: string) {
   switch (status) {
+    case "scheduled":
+      return "border border-sky-400/40 bg-sky-500/10 text-sky-100";
+    case "confirmed":
+      return "border border-cyan-400/40 bg-cyan-500/10 text-cyan-100";
     case "completed":
     case "paid":
-      return "border border-emerald-400/30 bg-emerald-400/10 text-emerald-200";
+      return "border border-emerald-400/40 bg-emerald-500/10 text-emerald-100";
     case "cancelled":
+      return "border border-slate-400/40 bg-slate-600/15 text-slate-200";
+    case "no_show":
     case "overdue":
-      return "border border-red-400/30 bg-red-500/10 text-red-200";
+      return "border border-rose-400/40 bg-rose-500/10 text-rose-100";
     case "in_progress":
     case "partial":
-      return "border border-amber-400/30 bg-amber-400/10 text-amber-200";
+      return "border border-amber-400/40 bg-amber-500/10 text-amber-100";
     default:
-      return "border border-sky-400/30 bg-sky-500/10 text-sky-100";
+      return "border border-blue-400/40 bg-blue-500/10 text-blue-100";
   }
 }
 
 function MetricCard({ title, value, subtitle }: { title: string; value: string; subtitle?: string }) {
   return (
     <article className="surface border border-white/10 p-5">
-      <p className="text-xs uppercase tracking-[0.35em] text-white/50">{title}</p>
-      <p className="text-3xl font-semibold text-white">{value}</p>
+      <p className="text-[11px] uppercase tracking-[0.4em] text-muted-foreground">{title}</p>
+      <p className="text-3xl font-semibold text-primary mt-1">{value}</p>
       {subtitle && <p className="mt-2 text-sm text-muted-foreground">{subtitle}</p>}
     </article>
   );
@@ -183,7 +189,7 @@ export default async function DashboardPage() {
                 {metrics.lowStockItems.map((item) => (
                   <tr key={item.id} className="border-t">
                     <td className="p-2">{item.name}</td>
-                    <td className="p-2 text-red-600 font-semibold">{item.quantity}</td>
+                    <td className="p-2 text-amber-300 font-semibold">{item.quantity}</td>
                     <td className="p-2">{item.lowStockThreshold ?? 0}</td>
                   </tr>
                 ))}

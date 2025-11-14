@@ -113,8 +113,11 @@ export default async function PrescriptionsPage() {
 
   return (
     <div className="space-y-4">
-      <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-semibold text-white">Prescriptions</h1>
+      <div className="flex flex-wrap items-center justify-between gap-4">
+        <div>
+          <h1 className="text-2xl font-semibold text-white">Prescriptions</h1>
+          <p className="text-sm text-muted-foreground">Compile treatments and share clear instructions.</p>
+        </div>
         <NewPrescriptionButton patients={patients} doctors={doctors} items={items} />
       </div>
 

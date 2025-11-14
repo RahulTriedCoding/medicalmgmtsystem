@@ -132,8 +132,8 @@ export default async function BillingPage() {
                 <th className="p-2 text-left">Patient</th>
                 <th className="p-2 text-left">Due</th>
                 <th className="p-2 text-left">Status</th>
-                <th className="p-2 text-left">Total</th>
-                <th className="p-2 text-left">Balance</th>
+                <th className="p-2 text-right">Total</th>
+                <th className="p-2 text-right">Balance</th>
                 <th className="p-2 text-left">Actions</th>
               </tr>
             </thead>
@@ -153,8 +153,10 @@ export default async function BillingPage() {
                       {statusLabel(invoice.status)}
                     </span>
                   </td>
-                  <td className="p-2">{formatCurrency(invoice.total)}</td>
-                  <td className="p-2">{formatCurrency(invoice.balance)}</td>
+                  <td className="p-2 text-right font-semibold">{formatCurrency(invoice.total)}</td>
+                  <td className={`p-2 text-right font-semibold ${invoice.status === "overdue" ? "text-rose-200" : ""}`}>
+                    {formatCurrency(invoice.balance)}
+                  </td>
                   <td className="p-2">
                     <RecordPaymentButton
                       invoiceId={invoice.id}
