@@ -2,6 +2,7 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
+import { searchPatients } from "@/lib/patients/store";
 
 const PatientSchema = z.object({
   mrn: z.string().min(1),
@@ -48,4 +49,20 @@ export async function POST(req: Request) {
   }
 
   return NextResponse.json({ ok: true, patient: data });
+}
+
+export async function GET(req: Request) {
+  const supabase = await createSupabaseServerClient();
+  const { searchParams } = new URL(req.url);
+  const search = searchParams.get("search") ?? "";
+
+  try {
+    const patients = await searchPatients(search, supabase);
+    return NextResponse.json({ patients });
+  } catch (error) {
+    console.error("[patients] search failed", error);
+    const message =
+      error instanceof Error ? error.message : "Failed to load patients";
+    return NextResponse.json({ error: message }, { status: 500 });
+  }
 }

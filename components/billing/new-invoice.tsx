@@ -124,11 +124,11 @@ export function NewInvoiceButton({ patients }: { patients: Option[] }) {
       </button>
 
       {open && (
-        <div className="fixed inset-0 z-50 grid place-items-center bg-black/70 p-4 backdrop-blur">
-          <div className="w-full max-w-3xl space-y-4 rounded-3xl border border-white/10 bg-[#080a10] p-6 shadow-[0_30px_80px_rgba(0,0,0,0.65)]">
+        <div className="modal-overlay fixed inset-0 z-50 grid place-items-center p-4 backdrop-blur">
+          <div className="modal-card w-full max-w-3xl space-y-4 p-6">
             <div className="flex items-center justify-between gap-4">
               <div>
-                <h2 className="text-lg font-semibold text-white">New invoice</h2>
+                <h2 className="text-lg font-semibold text-slate-900 dark:text-white">New invoice</h2>
                 <p className="text-sm text-muted-foreground">Capture billable services for a patient.</p>
               </div>
               <button className="btn-ghost text-xs" onClick={() => setOpen(false)}>
@@ -171,8 +171,8 @@ export function NewInvoiceButton({ patients }: { patients: Option[] }) {
                 <textarea name="notes" className="field mt-1" rows={2} />
               </label>
 
-              <section className="rounded-2xl border border-white/10 bg-black/20">
-                <header className="flex items-center justify-between border-b border-white/10 px-3 py-2 text-sm font-medium">
+              <section className="modal-panel">
+                <header className="flex items-center justify-between border-b border-slate-200 px-3 py-2 text-sm font-medium dark:border-white/10">
                   Line items
                   <button type="button" className="btn-secondary text-xs px-3 py-1.5" onClick={addLine}>
                     Add line
@@ -241,9 +241,11 @@ export function NewInvoiceButton({ patients }: { patients: Option[] }) {
                     </tbody>
                   </table>
                 </div>
-                <footer className="flex items-center justify-end gap-3 border-t border-white/10 px-3 py-2 text-sm">
+                <footer className="flex items-center justify-end gap-3 border-t border-slate-200 px-3 py-2 text-sm dark:border-white/10">
                   <span className="text-muted-foreground">Total</span>
-                  <span className="text-base font-semibold text-white">${total.toFixed(2)}</span>
+                  <span className="text-base font-semibold text-slate-900 dark:text-white">
+                    ${total.toFixed(2)}
+                  </span>
                 </footer>
               </section>
 

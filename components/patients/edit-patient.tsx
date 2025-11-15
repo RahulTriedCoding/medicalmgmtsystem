@@ -88,10 +88,10 @@ export default function EditPatientButton({ patient }: { patient: Patient }) {
       </button>
 
       {open && (
-        <div className="fixed inset-0 z-50 grid place-items-center bg-black/70 p-4 backdrop-blur">
-          <div className="w-full max-w-lg space-y-4 rounded-3xl border border-white/10 bg-[#080a10] p-5 shadow-[0_30px_80px_rgba(0,0,0,0.65)]">
+        <div className="modal-overlay fixed inset-0 z-50 grid place-items-center p-4 backdrop-blur">
+          <div className="modal-card w-full max-w-lg space-y-4 p-5">
             <div className="flex items-center justify-between">
-              <h2 className="text-lg font-semibold text-white">Edit patient</h2>
+              <h2 className="text-lg font-semibold text-slate-900 dark:text-white">Edit patient</h2>
               <button className="btn-ghost text-xs" onClick={() => setOpen(false)}>
                 Close
               </button>

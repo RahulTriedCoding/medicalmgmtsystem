@@ -30,18 +30,20 @@ export default function UserMenu() {
   }
 
   return (
-    <div className="surface mt-4 space-y-2 rounded-2xl border border-white/10 bg-white/[0.06] p-4 text-xs text-white/70 shadow-inner shadow-black/40">
+    <div className="mt-4 space-y-2 rounded-2xl border border-slate-200/80 bg-white/95 p-4 text-xs text-slate-600 shadow-[0_20px_45px_rgba(15,23,42,0.08)] dark:surface dark:border-white/10 dark:bg-white/5 dark:text-white/70">
       {loading ? (
-        <div className="animate-pulse text-white/60">Loading user…</div>
+        <div className="animate-pulse text-slate-500 dark:text-white/60">Loading user…</div>
       ) : me ? (
         <>
-          <div className="text-[13px] font-semibold text-white truncate">
+          <div className="truncate text-[13px] font-semibold text-slate-900 dark:text-white">
             {me.email ?? "—"}
           </div>
-          <div className="text-muted-foreground">Role: {me.role ?? "—"}</div>
+          <div className="text-[12px] font-medium text-slate-500 dark:text-white/70">
+            Role: <span className="capitalize text-slate-700 dark:text-white/80">{me.role ?? "—"}</span>
+          </div>
           <button
             onClick={signOut}
-            className="btn-secondary mt-3 w-full justify-center text-xs"
+            className="btn-secondary mt-3 w-full justify-center text-sm font-semibold"
           >
             Sign out
           </button>
@@ -51,7 +53,7 @@ export default function UserMenu() {
           <div className="text-muted-foreground">Not signed in</div>
           <button
             onClick={() => router.push("/login")}
-            className="btn-secondary mt-3 w-full justify-center text-xs"
+            className="btn-secondary mt-3 w-full justify-center text-sm font-semibold"
           >
             Go to login
           </button>

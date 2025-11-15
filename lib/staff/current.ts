@@ -26,16 +26,15 @@ async function linkStaffRecord(
     return null;
   }
 
-  await client
+  try {
+    await client
     .from("users")
     .update({ auth_user_id: authUserId })
-    .eq("id", data.id)
-    .then(() => {
-      console.info("[auth] linked staff record to auth user", { staffId: data.id, authUserId });
-    })
-    .catch((linkError) => {
-      console.warn("[auth] failed linking staff record", { staffId: data.id, authUserId, error: linkError });
-    });
+    .eq("id", data.id);
+    console.info("[auth] linked staff record to auth user", { staffId: data.id, authUserId });
+  } catch (linkError) {
+    console.warn("[auth] failed linking staff record", { staffId: data.id, authUserId, error: linkError });
+  }
 
   return data;
 }
@@ -56,7 +55,7 @@ export async function getCurrentStaffContext(
     return { authUserId: null, staffId: null, role: null, email: null };
   }
 
-  let staffRecord = await client
+  const staffRecord = await client
     .from("users")
     .select("id, role")
     .eq("auth_user_id", user.id)

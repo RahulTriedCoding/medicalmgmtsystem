@@ -2,6 +2,7 @@ import { createSupabaseServerClient } from "@/lib/supabase/server";
 import NewAppointmentButton from "@/components/appointments/new-appointment";
 import RowActions from "@/components/appointments/row-actions";
 import { AppointmentNotesButton } from "@/components/notes/appointment-notes";
+import { cn } from "@/lib/utils";
 import { getClinicDoctors } from "@/lib/staff/store";
 
 export const dynamic = "force-dynamic";
@@ -44,17 +45,35 @@ function isAppointmentRow(value: unknown): value is AppointmentRow {
 function appointmentStatusClass(status: string) {
   switch (status) {
     case "scheduled":
-      return "border border-sky-400/40 bg-sky-500/10 text-sky-100";
+      return cn(
+        "badge text-sky-700 bg-sky-100 border-sky-200",
+        "dark:border-sky-400/40 dark:bg-sky-500/10 dark:text-sky-100"
+      );
     case "confirmed":
-      return "border border-cyan-400/40 bg-cyan-500/10 text-cyan-100";
+      return cn(
+        "badge text-cyan-700 bg-cyan-100 border-cyan-200",
+        "dark:border-cyan-400/40 dark:bg-cyan-500/10 dark:text-cyan-100"
+      );
     case "completed":
-      return "border border-emerald-400/40 bg-emerald-500/10 text-emerald-100";
+      return cn(
+        "badge text-emerald-700 bg-emerald-100 border-emerald-200",
+        "dark:border-emerald-400/40 dark:bg-emerald-500/10 dark:text-emerald-100"
+      );
     case "cancelled":
-      return "border border-slate-500/40 bg-slate-600/20 text-slate-200";
+      return cn(
+        "badge text-slate-600 bg-slate-200 border-slate-300",
+        "dark:border-slate-500/40 dark:bg-slate-600/20 dark:text-slate-200"
+      );
     case "no_show":
-      return "border border-rose-400/40 bg-rose-500/10 text-rose-100";
+      return cn(
+        "badge text-rose-700 bg-rose-100 border-rose-200",
+        "dark:border-rose-400/40 dark:bg-rose-500/10 dark:text-rose-100"
+      );
     default:
-      return "border border-amber-400/40 bg-amber-500/10 text-amber-100";
+      return cn(
+        "badge text-amber-700 bg-amber-100 border-amber-200",
+        "dark:border-amber-400/40 dark:bg-amber-500/10 dark:text-amber-100"
+      );
   }
 }
 
@@ -111,18 +130,18 @@ export default async function AppointmentsPage() {
     <div className="space-y-4">
       <div className="flex flex-wrap items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-semibold text-white">Appointments</h1>
+          <h1 className="text-2xl font-semibold text-slate-900 dark:text-white">Appointments</h1>
           <p className="text-sm text-muted-foreground">Monitor today&apos;s schedule and take timely actions.</p>
         </div>
         <NewAppointmentButton patients={patients} doctors={doctors} />
       </div>
 
       {error ? (
-        <div className="text-red-400 text-sm">Error: {error.message}</div>
+        <div className="text-sm text-red-600 dark:text-red-400">Error: {error.message}</div>
       ) : !appts.length ? (
         <div className="text-sm text-muted-foreground">No upcoming appointments.</div>
       ) : (
-        <div className="surface border border-white/10 overflow-hidden">
+        <div className="surface overflow-hidden">
           <table className="w-full text-sm">
             <thead className="bg-muted">
               <tr>
@@ -146,6 +165,7 @@ export default async function AppointmentsPage() {
                   <td className="p-2">
                     <AppointmentNotesButton
                       appointmentId={a.id}
+                      patientId={a.patient_id}
                       patientName={a.patient_name}
                       patientMrn={a.patient_mrn}
                       doctorName={a.doctor_name}
@@ -154,9 +174,7 @@ export default async function AppointmentsPage() {
                     />
                   </td>
                   <td className="p-2">
-                    <span className={`badge ${appointmentStatusClass(a.status)}`}>
-                      {a.status.replace(/_/g, " ")}
-                    </span>
+                    <span className={appointmentStatusClass(a.status)}>{a.status.replace(/_/g, " ")}</span>
                   </td>
                   <td className="p-2">{a.reason}</td>
                   <td className="p-2">

@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
+import Link from "next/link";
 import { createPortal } from "react-dom";
 import { toast } from "sonner";
 
@@ -32,6 +33,7 @@ const TEMPLATES: Array<{ key: string; label: string; text: string }> = [
 
 type AppointmentNotesButtonProps = {
   appointmentId: string;
+  patientId: string;
   patientName?: string | null;
   patientMrn?: string | null;
   doctorName?: string | null;
@@ -41,6 +43,7 @@ type AppointmentNotesButtonProps = {
 
 export function AppointmentNotesButton({
   appointmentId,
+  patientId,
   patientName,
   patientMrn,
   doctorName,
@@ -57,6 +60,7 @@ export function AppointmentNotesButton({
       {open && (
         <NotesDialog
           appointmentId={appointmentId}
+          patientId={patientId}
           patientName={patientName}
           patientMrn={patientMrn}
           doctorName={doctorName}
@@ -73,7 +77,16 @@ type NotesDialogProps = AppointmentNotesButtonProps & {
   onClose(): void;
 };
 
-function NotesDialog({ appointmentId, patientName, patientMrn, doctorName, startsAt, endsAt, onClose }: NotesDialogProps) {
+function NotesDialog({
+  appointmentId,
+  patientId,
+  patientName,
+  patientMrn,
+  doctorName,
+  startsAt,
+  endsAt,
+  onClose,
+}: NotesDialogProps) {
   const [notes, setNotes] = useState<ClinicalNote[]>([]);
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
@@ -142,12 +155,12 @@ function NotesDialog({ appointmentId, patientName, patientMrn, doctorName, start
   if (!mounted) return null;
 
   return createPortal(
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 px-4 py-6 backdrop-blur">
-      <div className="flex w-full max-w-4xl flex-col rounded-3xl border border-white/10 bg-[#080a10] p-6 shadow-[0_30px_80px_rgba(0,0,0,0.65)] max-h-[92vh]">
+    <div className="modal-overlay fixed inset-0 z-50 flex items-center justify-center px-4 py-6 backdrop-blur">
+      <div className="modal-card flex w-full max-w-4xl flex-col p-6 text-foreground dark:text-white max-h-[92vh]">
         <div className="flex flex-wrap items-start justify-between gap-4">
           <div className="space-y-1">
-            <p className="text-xs uppercase tracking-widest text-cyan-300/70">Appointment</p>
-            <h2 className="text-2xl font-semibold text-white">Clinical notes</h2>
+            <p className="text-xs uppercase tracking-widest text-cyan-600/70 dark:text-cyan-300/70">Appointment</p>
+            <h2 className="text-2xl font-semibold text-slate-900 dark:text-white">Clinical notes</h2>
             <p className="text-sm text-muted-foreground">
               {patientName ?? "Patient"} {patientMrn ? `(${patientMrn})` : ""} · {doctorName ?? "Doctor"}
             </p>
@@ -158,17 +171,22 @@ function NotesDialog({ appointmentId, patientName, patientMrn, doctorName, start
               </p>
             )}
           </div>
-          <button className="btn-ghost text-xs" onClick={onClose}>
-            Close
-          </button>
+          <div className="flex flex-col items-end gap-2">
+            <Link href={`/patients/${patientId}/notes`} className="btn-secondary text-xs">
+              Open patient notes
+            </Link>
+            <button className="btn-ghost text-xs" onClick={onClose}>
+              Close
+            </button>
+          </div>
         </div>
 
         <div className="mt-6 flex-1 min-h-0">
           <div className="grid h-full gap-6 lg:grid-cols-[minmax(0,1.25fr)_minmax(0,0.75fr)]">
             <div className="flex min-h-0 flex-col gap-4">
-              <div className="space-y-3 rounded-2xl border border-white/10 bg-black/20 p-4">
+              <div className="modal-panel space-y-3 p-4">
                 <div>
-                  <p className="text-sm font-semibold text-white">Add clinical note</p>
+                  <p className="text-sm font-semibold text-slate-900 dark:text-white">Add clinical note</p>
                   <p className="text-xs text-muted-foreground">
                     Use a template or compose from scratch. Notes sync to Supabase for the entire care team.
                   </p>
@@ -197,7 +215,7 @@ function NotesDialog({ appointmentId, patientName, patientMrn, doctorName, start
                 </select>
               </div>
 
-              <div className="flex min-h-[260px] flex-1 flex-col space-y-3 rounded-2xl border border-white/10 bg-black/20 p-4">
+              <div className="modal-panel flex min-h-[260px] flex-1 flex-col space-y-3 p-4">
                 <div className="flex items-center justify-between gap-3">
                   <label className="text-sm font-medium text-muted-foreground">Clinical notes</label>
                   <p className="text-xs text-muted-foreground">SOAP, assessment, plan, instructions...</p>
@@ -210,7 +228,7 @@ function NotesDialog({ appointmentId, patientName, patientMrn, doctorName, start
                 />
               </div>
 
-              <div className="form-actions shrink-0 rounded-2xl border border-white/10 bg-[#080a10] p-4">
+              <div className="form-actions modal-panel shrink-0 p-4">
                 <button type="button" className="btn-secondary" onClick={onClose}>
                   Cancel
                 </button>
@@ -220,8 +238,8 @@ function NotesDialog({ appointmentId, patientName, patientMrn, doctorName, start
               </div>
             </div>
 
-            <div className="min-h-0 overflow-y-auto rounded-2xl border border-white/10 bg-black/20 p-4">
-              <h3 className="mb-2 text-sm font-semibold text-white">Previous clinical notes</h3>
+            <div className="modal-panel min-h-0 overflow-y-auto p-4">
+              <h3 className="mb-2 text-sm font-semibold text-slate-900 dark:text-white">Previous clinical notes</h3>
               {loading ? (
                 <p className="text-sm text-muted-foreground">Loading...</p>
               ) : error ? (
@@ -231,7 +249,7 @@ function NotesDialog({ appointmentId, patientName, patientMrn, doctorName, start
               ) : (
                 <ul className="space-y-3">
                   {notes.map((note) => (
-                    <li key={note.id} className="space-y-1 rounded-2xl border border-white/10 bg-black/30 p-3 text-sm">
+                    <li key={note.id} className="modal-panel space-y-1 border border-slate-200 p-3 text-sm dark:border-white/10 dark:bg-black/30">
                       <div className="flex items-center justify-between text-xs text-muted-foreground">
                         <span>{note.doctor_name ?? "Doctor"}</span>
                         <span>{new Date(note.created_at).toLocaleString()}</span>

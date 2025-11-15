@@ -38,7 +38,7 @@ export default function RowActions({ id, status }: Props) {
   return (
     <div className="flex flex-wrap items-center gap-2">
       {isCancelled ? (
-        <span className="badge border border-slate-500/50 bg-slate-700/40 text-[11px] text-slate-200">
+        <span className="badge border-slate-300 bg-slate-100 text-[11px] text-slate-600 dark:border-slate-500/50 dark:bg-slate-600/30 dark:text-slate-200">
           Cancelled
         </span>
       ) : (

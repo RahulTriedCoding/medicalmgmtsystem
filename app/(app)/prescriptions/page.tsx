@@ -115,18 +115,18 @@ export default async function PrescriptionsPage() {
     <div className="space-y-4">
       <div className="flex flex-wrap items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-semibold text-white">Prescriptions</h1>
+          <h1 className="text-2xl font-semibold text-slate-900 dark:text-white">Prescriptions</h1>
           <p className="text-sm text-muted-foreground">Compile treatments and share clear instructions.</p>
         </div>
         <NewPrescriptionButton patients={patients} doctors={doctors} items={items} />
       </div>
 
       {errorMessage ? (
-        <div className="text-sm text-red-400">Error: {errorMessage}</div>
+        <div className="text-sm text-red-600 dark:text-red-400">Error: {errorMessage}</div>
       ) : !mappedPrescriptions.length ? (
         <div className="text-sm text-muted-foreground">No prescriptions yet.</div>
       ) : (
-        <div className="surface border border-white/10 overflow-hidden">
+        <div className="surface overflow-hidden">
           <table className="w-full text-sm">
             <thead className="bg-muted">
               <tr>

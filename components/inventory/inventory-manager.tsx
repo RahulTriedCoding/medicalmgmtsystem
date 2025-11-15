@@ -83,8 +83,8 @@ export function InventoryManager({ initialItems }: Props) {
 
   return (
     <div className="space-y-6">
-      <section className="surface border border-white/10 p-5">
-        <h2 className="mb-3 text-lg font-semibold text-white">Add inventory item</h2>
+      <section className="surface p-5">
+        <h2 className="mb-3 text-lg font-semibold text-slate-900 dark:text-white">Add inventory item</h2>
         <form className="grid gap-3 md:grid-cols-2" onSubmit={handleAdd}>
           <label className="text-sm text-muted-foreground">
             Name *
@@ -135,9 +135,9 @@ export function InventoryManager({ initialItems }: Props) {
         </form>
       </section>
 
-      <section className="surface border border-white/10">
-        <div className="flex items-center justify-between border-b border-white/10 px-4 py-3">
-          <h2 className="text-lg font-semibold text-white">Current stock</h2>
+      <section className="surface">
+        <div className="flex items-center justify-between border-b border-slate-200 px-4 py-3 dark:border-white/10">
+          <h2 className="text-lg font-semibold text-slate-900 dark:text-white">Current stock</h2>
           <button className="btn-ghost text-sm" onClick={refresh}>
             Refresh
           </button>
@@ -164,7 +164,9 @@ export function InventoryManager({ initialItems }: Props) {
                     </td>
                     <td className="p-2 text-muted-foreground">{item.description ?? "—"}</td>
                     <td className="p-2">
-                      <span className={low ? "text-amber-300 font-semibold" : ""}>{item.quantity}</span>
+                      <span className={low ? "font-semibold text-amber-600 dark:text-amber-200" : ""}>
+                        {item.quantity}
+                      </span>
                     </td>
                     <td className="p-2">{item.lowStockThreshold ?? 0}</td>
                     <td className="p-2">

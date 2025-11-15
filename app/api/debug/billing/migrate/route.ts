@@ -37,7 +37,7 @@ async function resolveStaffFromToken(
     return null;
   }
 
-  return { authUserId, staffId: data.id ?? null, role: data.role ?? null };
+  return { authUserId, staffId: data.id ?? null, role: data.role ?? null, email: null };
 }
 
 export async function POST(req: Request) {

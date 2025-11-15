@@ -14,7 +14,7 @@ export function NewStaffButton() {
     const full_name = String(form.get("full_name") || "").trim();
     const email = String(form.get("email") || "").trim();
     const phone = String(form.get("phone") || "").trim();
-    const role = String(form.get("role") || "").trim();
+    const role = String(form.get("role") || "").trim().toLowerCase();
 
     if (!full_name || !email || !role) {
       toast.error("Name, email, and role are required.");
@@ -51,11 +51,11 @@ export function NewStaffButton() {
         Invite staff
       </button>
       {open && (
-        <div className="fixed inset-0 z-50 grid place-items-center bg-black/70 p-4 backdrop-blur">
-          <div className="w-full max-w-lg space-y-4 rounded-3xl border border-white/10 bg-[#080a10] p-5 shadow-[0_30px_80px_rgba(0,0,0,0.65)]">
+        <div className="modal-overlay fixed inset-0 z-50 grid place-items-center p-4 backdrop-blur">
+          <div className="modal-card w-full max-w-lg space-y-4 p-5">
             <div className="flex items-center justify-between">
               <div>
-                <h2 className="text-lg font-semibold text-white">Invite staff member</h2>
+                <h2 className="text-lg font-semibold text-slate-900 dark:text-white">Invite staff member</h2>
                 <p className="text-sm text-muted-foreground">
                   Send access to doctors, nurses, and clinic staff.
                 </p>

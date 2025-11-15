@@ -53,8 +53,8 @@ export function SettingsForm({ initial }: Props) {
 
   return (
     <form className="space-y-6" onSubmit={onSubmit}>
-      <section className="surface border border-white/10 p-5 space-y-3">
-        <h2 className="text-lg font-semibold text-white">Clinic profile</h2>
+      <section className="surface p-5 space-y-3">
+        <h2 className="text-lg font-semibold text-slate-900 dark:text-white">Clinic profile</h2>
         <div className="grid gap-3 md:grid-cols-2">
           <label className="text-sm text-muted-foreground">
             Clinic name
@@ -97,8 +97,8 @@ export function SettingsForm({ initial }: Props) {
         </div>
       </section>
 
-      <section className="surface border border-white/10 p-5 space-y-3">
-        <h2 className="text-lg font-semibold text-white">Scheduling</h2>
+      <section className="surface p-5 space-y-3">
+        <h2 className="text-lg font-semibold text-slate-900 dark:text-white">Scheduling</h2>
         <div className="grid gap-3 md:grid-cols-3">
           <label className="text-sm text-muted-foreground">
             Currency
@@ -134,8 +134,8 @@ export function SettingsForm({ initial }: Props) {
         </div>
       </section>
 
-      <section className="surface border border-white/10 p-5 space-y-3">
-        <h2 className="text-lg font-semibold text-white">Notifications</h2>
+      <section className="surface p-5 space-y-3">
+        <h2 className="text-lg font-semibold text-slate-900 dark:text-white">Notifications</h2>
         <label className="flex items-center gap-3 text-sm text-muted-foreground">
           <input
             type="checkbox"
@@ -154,8 +154,8 @@ export function SettingsForm({ initial }: Props) {
         </label>
       </section>
 
-      <section className="surface border border-white/10 p-5 space-y-2">
-        <h2 className="text-lg font-semibold text-white">Billing notes</h2>
+      <section className="surface p-5 space-y-2">
+        <h2 className="text-lg font-semibold text-slate-900 dark:text-white">Billing notes</h2>
         <textarea
           name="billing_notes"
           defaultValue={values.billing_notes}

@@ -3,7 +3,7 @@ import { createSupabaseServerClient } from "@/lib/supabase/server";
 
 export type ClinicalNote = {
   id: string;
-  appointment_id: string;
+  appointment_id: string | null;
   patient_id: string;
   doctor_id: string;
   note_text: string;
@@ -11,6 +11,8 @@ export type ClinicalNote = {
   created_at: string;
   updated_at: string;
   doctor_name: string | null;
+  appointment_starts_at: string | null;
+  appointment_ends_at: string | null;
 };
 
 type ServerClient = SupabaseClient;
@@ -24,12 +26,13 @@ const NOTE_COLUMNS = `
   template_key,
   created_at,
   updated_at,
-  doctor:doctor_id(full_name)
+  doctor:doctor_id(full_name),
+  appointment:appointment_id(starts_at, ends_at)
 `;
 
 type NoteRow = {
   id: string;
-  appointment_id: string;
+  appointment_id: string | null;
   patient_id: string;
   doctor_id: string;
   note_text: string;
@@ -37,6 +40,10 @@ type NoteRow = {
   created_at: string;
   updated_at: string;
   doctor: { full_name: string | null } | { full_name: string | null }[] | null;
+  appointment:
+    | { starts_at: string | null; ends_at: string | null }
+    | { starts_at: string | null; ends_at: string | null }[]
+    | null;
 };
 
 function normalizeRelation<T>(value: T | T[] | null | undefined): T | null {
@@ -46,9 +53,10 @@ function normalizeRelation<T>(value: T | T[] | null | undefined): T | null {
 
 function mapNote(row: NoteRow): ClinicalNote {
   const doctorRelation = normalizeRelation(row.doctor);
+  const appointmentRelation = normalizeRelation(row.appointment);
   return {
     id: row.id,
-    appointment_id: row.appointment_id,
+    appointment_id: row.appointment_id ?? null,
     patient_id: row.patient_id,
     doctor_id: row.doctor_id,
     note_text: row.note_text,
@@ -56,6 +64,8 @@ function mapNote(row: NoteRow): ClinicalNote {
     created_at: row.created_at,
     updated_at: row.updated_at,
     doctor_name: doctorRelation?.full_name ?? null,
+    appointment_starts_at: appointmentRelation?.starts_at ?? null,
+    appointment_ends_at: appointmentRelation?.ends_at ?? null,
   };
 }
 
@@ -81,7 +91,7 @@ function handlePostgrestError(error: PostgrestError): never {
 }
 
 export type ClinicalNotePayload = {
-  appointmentId: string;
+  appointmentId?: string | null;
   patientId: string;
   doctorId: string;
   noteText: string;
@@ -101,12 +111,40 @@ export async function createClinicalNote(
   const { data, error } = await supabase
     .from("clinical_notes")
     .insert({
-      appointment_id: payload.appointmentId,
+      appointment_id: payload.appointmentId ?? null,
       patient_id: payload.patientId,
       doctor_id: payload.doctorId,
       note_text: trimmed,
       template_key: payload.templateKey ?? null,
     })
+    .select(NOTE_COLUMNS)
+    .single();
+
+  if (error) {
+    handlePostgrestError(error);
+  }
+
+  return mapNote(data as NoteRow);
+}
+
+export async function updateClinicalNote(
+  noteId: string,
+  payload: { noteText: string; templateKey?: string | null },
+  client?: ServerClient
+): Promise<ClinicalNote> {
+  const supabase = await ensureClient(client);
+  const trimmed = payload.noteText.trim();
+  if (!trimmed) {
+    throw new Error("Note text is required");
+  }
+
+  const { data, error } = await supabase
+    .from("clinical_notes")
+    .update({
+      note_text: trimmed,
+      template_key: payload.templateKey ?? null,
+    })
+    .eq("id", noteId)
     .select(NOTE_COLUMNS)
     .single();
 

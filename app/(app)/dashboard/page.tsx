@@ -23,30 +23,30 @@ function formatDateTime(value: string) {
 function statusBadgeClass(status: string) {
   switch (status) {
     case "scheduled":
-      return "border border-sky-400/40 bg-sky-500/10 text-sky-100";
+      return "border border-sky-200 bg-sky-50 text-sky-800 dark:border-sky-400/40 dark:bg-sky-500/10 dark:text-sky-100";
     case "confirmed":
-      return "border border-cyan-400/40 bg-cyan-500/10 text-cyan-100";
+      return "border border-cyan-200 bg-cyan-50 text-cyan-800 dark:border-cyan-400/40 dark:bg-cyan-500/10 dark:text-cyan-100";
     case "completed":
     case "paid":
-      return "border border-emerald-400/40 bg-emerald-500/10 text-emerald-100";
+      return "border border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-400/40 dark:bg-emerald-500/10 dark:text-emerald-100";
     case "cancelled":
-      return "border border-slate-400/40 bg-slate-600/15 text-slate-200";
+      return "border border-slate-200 bg-slate-100 text-slate-700 dark:border-slate-400/40 dark:bg-slate-600/20 dark:text-slate-200";
     case "no_show":
     case "overdue":
-      return "border border-rose-400/40 bg-rose-500/10 text-rose-100";
+      return "border border-rose-200 bg-rose-50 text-rose-700 dark:border-rose-400/40 dark:bg-rose-500/10 dark:text-rose-100";
     case "in_progress":
     case "partial":
-      return "border border-amber-400/40 bg-amber-500/10 text-amber-100";
+      return "border border-amber-200 bg-amber-50 text-amber-700 dark:border-amber-400/40 dark:bg-amber-500/10 dark:text-amber-100";
     default:
-      return "border border-blue-400/40 bg-blue-500/10 text-blue-100";
+      return "border border-indigo-200 bg-indigo-50 text-indigo-700 dark:border-indigo-400/40 dark:bg-indigo-500/10 dark:text-indigo-100";
   }
 }
 
 function MetricCard({ title, value, subtitle }: { title: string; value: string; subtitle?: string }) {
   return (
-    <article className="surface border border-white/10 p-5">
+    <article className="surface p-5">
       <p className="text-[11px] uppercase tracking-[0.4em] text-muted-foreground">{title}</p>
-      <p className="text-3xl font-semibold text-primary mt-1">{value}</p>
+      <p className="mt-1 text-3xl font-semibold text-primary">{value}</p>
       {subtitle && <p className="mt-2 text-sm text-muted-foreground">{subtitle}</p>}
     </article>
   );
@@ -59,8 +59,8 @@ export default async function DashboardPage() {
   return (
     <div className="space-y-6">
       <div>
-        <p className="text-xs uppercase tracking-[0.35em] text-white/50">Command center</p>
-        <h1 className="text-3xl font-semibold text-white">Dashboard</h1>
+        <p className="text-xs uppercase tracking-[0.35em] text-slate-500 dark:text-white/50">Command center</p>
+        <h1 className="text-3xl font-semibold text-slate-900 dark:text-white">Dashboard</h1>
         <p className="text-sm text-muted-foreground">
           Key metrics across scheduling, billing, and inventory.
         </p>
@@ -86,9 +86,9 @@ export default async function DashboardPage() {
       </section>
 
       <div className="grid gap-6 lg:grid-cols-2">
-        <section className="surface border border-white/10">
-          <header className="flex items-center justify-between border-b border-white/10 px-4 py-3">
-            <h2 className="text-lg font-semibold text-white">Upcoming appointments</h2>
+        <section className="surface">
+          <header className="flex items-center justify-between border-b border-slate-200 px-4 py-3 dark:border-white/10">
+            <h2 className="text-lg font-semibold text-slate-900 dark:text-white">Upcoming appointments</h2>
             <p className="text-xs text-muted-foreground">Next five scheduled</p>
           </header>
           {!metrics.upcomingAppointments.length ? (
@@ -130,9 +130,9 @@ export default async function DashboardPage() {
           )}
         </section>
 
-        <section className="surface border border-white/10">
-          <header className="flex items-center justify-between border-b border-white/10 px-4 py-3">
-            <h2 className="text-lg font-semibold text-white">Outstanding invoices</h2>
+        <section className="surface">
+          <header className="flex items-center justify-between border-b border-slate-200 px-4 py-3 dark:border-white/10">
+            <h2 className="text-lg font-semibold text-slate-900 dark:text-white">Outstanding invoices</h2>
             <p className="text-xs text-muted-foreground">
               {formatCurrency(metrics.outstandingBalance)} outstanding / {formatCurrency(metrics.overdueBalance)} overdue
             </p>
@@ -171,9 +171,9 @@ export default async function DashboardPage() {
         </section>
       </div>
 
-      <section className="surface border border-white/10">
-        <header className="flex items-center justify-between border-b border-white/10 px-4 py-3">
-          <h2 className="text-lg font-semibold text-white">Inventory alerts</h2>
+      <section className="surface">
+        <header className="flex items-center justify-between border-b border-slate-200 px-4 py-3 dark:border-white/10">
+          <h2 className="text-lg font-semibold text-slate-900 dark:text-white">Inventory alerts</h2>
           <p className="text-xs text-muted-foreground">Items at or below threshold</p>
         </header>
         {!metrics.lowStockItems.length ? (
@@ -192,7 +192,7 @@ export default async function DashboardPage() {
                 {metrics.lowStockItems.map((item) => (
                   <tr key={item.id} className="border-t">
                     <td className="p-2">{item.name}</td>
-                    <td className="p-2 text-amber-300 font-semibold">{item.quantity}</td>
+                    <td className="p-2 font-semibold text-amber-600 dark:text-amber-200">{item.quantity}</td>
                     <td className="p-2">{item.lowStockThreshold ?? 0}</td>
                   </tr>
                 ))}

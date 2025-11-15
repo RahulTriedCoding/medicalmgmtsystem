@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
-import { STAFF_ROLES } from "@/lib/staff/types";
+import { STAFF_ROLES, normalizeStaffRole } from "@/lib/staff/types";
 import { deleteStaffContact, upsertStaffContact, getStaffContacts } from "@/lib/staff/store";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import { requireStaffRole } from "@/lib/staff/permissions";
@@ -58,7 +58,7 @@ export async function PATCH(req: Request, { params }: { params: ParamsShape }) {
 
   const updatePayload: Record<string, unknown> = {};
   if (parsed.data.full_name !== undefined) updatePayload.full_name = parsed.data.full_name;
-  if (parsed.data.role !== undefined) updatePayload.role = parsed.data.role;
+  if (parsed.data.role !== undefined) updatePayload.role = normalizeStaffRole(parsed.data.role) ?? parsed.data.role;
   const { data, error } = await supabase
     .from("users")
     .update(updatePayload)

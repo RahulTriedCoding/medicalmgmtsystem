@@ -2,7 +2,7 @@ import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { NewStaffButton } from "@/components/staff/new-staff";
 import { StaffRoleSelect } from "@/components/staff/staff-role-select";
 import { RemoveStaffButton } from "@/components/staff/remove-staff-button";
-import { StaffRole, isStaffRole } from "@/lib/staff/types";
+import { StaffRole, normalizeStaffRole } from "@/lib/staff/types";
 import { getStaffContacts } from "@/lib/staff/store";
 
 type StaffRow = {
@@ -40,7 +40,7 @@ function coerceStaff(rows: unknown[]): StaffRow[] {
     id: row.id as string,
     full_name: row.full_name ?? "Staff",
     email: row.email ?? "unknown",
-    role: isStaffRole(row.role) ? row.role : "doctor",
+    role: normalizeStaffRole(row.role) ?? "doctor",
     phone: null,
     created_at: row.created_at ?? new Date().toISOString(),
     auth_user_id: row.auth_user_id ?? null,

@@ -128,10 +128,10 @@ export default function NewPrescriptionButton(props: {
       </button>
 
       {open && (
-        <div className="fixed inset-0 z-50 grid place-items-center bg-black/70 p-4 backdrop-blur">
-          <div className="w-full max-w-2xl space-y-4 rounded-3xl border border-white/10 bg-[#080a10] p-5 shadow-[0_30px_80px_rgba(0,0,0,0.65)]">
+        <div className="modal-overlay fixed inset-0 z-50 grid place-items-center p-4 backdrop-blur">
+          <div className="modal-card w-full max-w-2xl space-y-4 p-5">
             <div className="flex items-center justify-between">
-              <h2 className="text-lg font-semibold text-white">Create prescription</h2>
+              <h2 className="text-lg font-semibold text-slate-900 dark:text-white">Create prescription</h2>
               <button
                 className="btn-ghost text-xs"
                 onClick={() => {
@@ -174,7 +174,7 @@ export default function NewPrescriptionButton(props: {
 
               <div className="space-y-3">
                 <div className="flex items-center justify-between">
-                  <h3 className="text-sm font-medium text-white">Medications</h3>
+                  <h3 className="text-sm font-medium text-slate-900 dark:text-white">Medications</h3>
                   <button type="button" className="btn-secondary text-xs px-3 py-1.5" onClick={addLine}>
                     Add line
                   </button>
@@ -183,7 +183,7 @@ export default function NewPrescriptionButton(props: {
                 {lines.map((line, index) => (
                   <div
                     key={index}
-                    className="grid gap-2 rounded-2xl border border-white/10 bg-black/20 p-3 sm:grid-cols-[2fr_2fr_1fr_auto]"
+                    className="modal-panel grid gap-2 p-3 sm:grid-cols-[2fr_2fr_1fr_auto]"
                   >
                     <select
                       value={line.item_id}

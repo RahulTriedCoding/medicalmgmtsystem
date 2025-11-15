@@ -21,8 +21,8 @@ export default async function SettingsPage() {
   if (role !== "admin") {
     return (
       <div className="space-y-2">
-        <h1 className="text-2xl font-semibold text-white">Settings</h1>
-        <p className="text-sm text-red-400">
+        <h1 className="text-2xl font-semibold text-slate-900 dark:text-white">Settings</h1>
+        <p className="text-sm text-red-600 dark:text-red-400">
           You need admin permissions to manage clinic settings.
         </p>
       </div>
@@ -33,7 +33,7 @@ export default async function SettingsPage() {
   return (
     <div className="space-y-5">
       <div>
-        <h1 className="text-2xl font-semibold text-white">Settings</h1>
+        <h1 className="text-2xl font-semibold text-slate-900 dark:text-white">Settings</h1>
         <p className="text-sm text-muted-foreground">
           Update clinic profile, scheduling defaults, and notification preferences.
         </p>

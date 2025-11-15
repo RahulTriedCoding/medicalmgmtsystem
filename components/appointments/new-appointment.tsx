@@ -106,10 +106,10 @@ export default function NewAppointmentButton(props: {
       </button>
 
       {open && (
-        <div className="fixed inset-0 z-50 grid place-items-center bg-black/70 p-4 backdrop-blur">
-          <div className="w-full max-w-xl space-y-4 rounded-3xl border border-white/10 bg-[#080a10] p-5 shadow-[0_30px_80px_rgba(0,0,0,0.65)]">
+        <div className="modal-overlay fixed inset-0 z-50 grid place-items-center p-4 backdrop-blur">
+          <div className="modal-card w-full max-w-xl space-y-4 p-5">
             <div className="flex items-center justify-between">
-              <h2 className="text-lg font-semibold text-white">Create appointment</h2>
+              <h2 className="text-lg font-semibold text-slate-900 dark:text-white">Create appointment</h2>
               <button className="btn-ghost text-xs" onClick={() => setOpen(false)}>
                 Close
               </button>
@@ -143,7 +143,7 @@ export default function NewAppointmentButton(props: {
                   ))}
                 </select>
                 {!hasDoctors && (
-                  <p className="text-xs text-amber-300/80">
+                  <p className="text-xs text-amber-600 dark:text-amber-200">
                     Invite doctors from the Staff page to schedule them here.
                   </p>
                 )}

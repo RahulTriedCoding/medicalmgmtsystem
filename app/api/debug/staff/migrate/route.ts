@@ -25,7 +25,7 @@ async function resolveStaffFromToken(
 
   const { data, error } = await adminClient
     .from("users")
-    .select("id, role")
+    .select("id, role, email")
     .eq("auth_user_id", authUserId)
     .maybeSingle();
 
@@ -37,7 +37,12 @@ async function resolveStaffFromToken(
     return null;
   }
 
-  return { authUserId, staffId: data.id ?? null, role: data.role ?? null };
+  return {
+    authUserId,
+    staffId: data.id ?? null,
+    role: data.role ?? null,
+    email: data.email ?? null,
+  };
 }
 
 export async function POST(req: Request) {

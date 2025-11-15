@@ -69,11 +69,13 @@ export function RecordPaymentButton({ invoiceId, invoiceNumber, balance }: Props
       </button>
 
       {open && (
-        <div className="fixed inset-0 z-50 grid place-items-center bg-black/70 p-4 backdrop-blur">
-          <div className="w-full max-w-md space-y-4 rounded-3xl border border-white/10 bg-[#080a10] p-5 shadow-[0_30px_80px_rgba(0,0,0,0.65)]">
+        <div className="modal-overlay fixed inset-0 z-50 grid place-items-center p-4 backdrop-blur">
+          <div className="modal-card w-full max-w-md space-y-4 p-5">
             <div className="flex items-center justify-between gap-4">
               <div>
-                <h2 className="text-lg font-semibold text-white">Payment for {invoiceNumber}</h2>
+                <h2 className="text-lg font-semibold text-slate-900 dark:text-white">
+                  Payment for {invoiceNumber}
+                </h2>
                 <p className="text-sm text-muted-foreground">
                   Outstanding balance: ${balance.toFixed(2)}
                 </p>

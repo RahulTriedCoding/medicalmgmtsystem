@@ -2,6 +2,7 @@ import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { getInvoices, BillingInvoice, BillingStatus } from "@/lib/billing/store";
 import { NewInvoiceButton } from "@/components/billing/new-invoice";
 import { RecordPaymentButton } from "@/components/billing/record-payment";
+import { cn } from "@/lib/utils";
 
 type Patient = { id: string; full_name: string | null; mrn: string | null };
 type Option = { id: string; label: string };
@@ -19,13 +20,13 @@ function formatDate(value: string) {
 function statusClasses(status: BillingStatus) {
   switch (status) {
     case "paid":
-      return "border border-emerald-400/30 bg-emerald-400/10 text-emerald-200";
+      return "border border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-400/40 dark:bg-emerald-500/10 dark:text-emerald-100";
     case "overdue":
-      return "border border-red-400/30 bg-red-400/10 text-red-200";
+      return "border border-rose-200 bg-rose-50 text-rose-700 dark:border-rose-400/40 dark:bg-rose-500/10 dark:text-rose-100";
     case "partial":
-      return "border border-amber-400/30 bg-amber-400/10 text-amber-200";
+      return "border border-amber-200 bg-amber-50 text-amber-700 dark:border-amber-400/40 dark:bg-amber-500/10 dark:text-amber-100";
     default:
-      return "border border-sky-400/30 bg-sky-400/10 text-sky-100";
+      return "border border-sky-200 bg-sky-50 text-sky-800 dark:border-sky-400/40 dark:bg-sky-500/10 dark:text-sky-100";
   }
 }
 
@@ -90,7 +91,7 @@ export default async function BillingPage() {
     <div className="space-y-5">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
-          <h1 className="text-2xl font-semibold text-white">Billing</h1>
+          <h1 className="text-2xl font-semibold text-slate-900 dark:text-white">Billing</h1>
           <p className="text-sm text-muted-foreground">
             Track invoices, outstanding balances, and payments.
           </p>
@@ -98,33 +99,33 @@ export default async function BillingPage() {
         <NewInvoiceButton patients={patientOptions} />
       </div>
 
-      {error && <div className="text-sm text-red-400">Error loading patients: {error.message}</div>}
+      {error && <div className="text-sm text-red-600 dark:text-red-400">Error loading patients: {error.message}</div>}
 
       <section className="grid gap-3 md:grid-cols-2 lg:grid-cols-4">
-        <article className="surface border border-white/10 p-4">
+        <article className="surface p-4">
           <p className="text-sm text-muted-foreground">Total billed</p>
           <p className="text-2xl font-semibold">{formatCurrency(totals.billed)}</p>
         </article>
-        <article className="surface border border-white/10 p-4">
+        <article className="surface p-4">
           <p className="text-sm text-muted-foreground">Collected</p>
           <p className="text-2xl font-semibold">{formatCurrency(totals.collected)}</p>
         </article>
-        <article className="surface border border-white/10 p-4">
+        <article className="surface p-4">
           <p className="text-sm text-muted-foreground">Outstanding</p>
           <p className="text-2xl font-semibold">{formatCurrency(totals.outstanding)}</p>
         </article>
-        <article className="surface border border-white/10 p-4">
+        <article className="surface p-4">
           <p className="text-sm text-muted-foreground">Overdue</p>
           <p className="text-2xl font-semibold">{formatCurrency(totals.overdue)}</p>
         </article>
       </section>
 
       {!sortedRows.length ? (
-        <div className="surface border border-white/10 p-6 text-center text-sm text-muted-foreground">
+        <div className="surface p-6 text-center text-sm text-muted-foreground">
           No invoices yet. Create one to start tracking billing.
         </div>
       ) : (
-        <div className="surface border border-white/10 overflow-hidden">
+        <div className="surface overflow-hidden">
           <table className="w-full text-sm">
             <thead className="bg-muted">
               <tr>
@@ -154,7 +155,12 @@ export default async function BillingPage() {
                     </span>
                   </td>
                   <td className="p-2 text-right font-semibold">{formatCurrency(invoice.total)}</td>
-                  <td className={`p-2 text-right font-semibold ${invoice.status === "overdue" ? "text-rose-200" : ""}`}>
+                  <td
+                    className={cn(
+                      "p-2 text-right font-semibold",
+                      invoice.status === "overdue" && "text-rose-600 dark:text-rose-200"
+                    )}
+                  >
                     {formatCurrency(invoice.balance)}
                   </td>
                   <td className="p-2">
