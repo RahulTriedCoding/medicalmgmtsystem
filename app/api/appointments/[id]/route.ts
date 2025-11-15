@@ -1,8 +1,8 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
+import { requireStaffRole } from "@/lib/staff/permissions";
 
-type SupabaseServerClient = Awaited<ReturnType<typeof createSupabaseServerClient>>;
 type ParamsShape = Promise<{ id?: string }>;
 
 const IdSchema = z.object({ id: z.string().uuid() });
@@ -13,41 +13,9 @@ const PatchSchema = z.object({
   ends_at: z.coerce.date().transform((d) => d.toISOString()).optional(),
   duration: z.number().int().positive().optional(),
   reason: z.string().max(200).optional().nullable(),
-  status: z.enum(["scheduled", "completed", "cancelled", "no_show"]).optional(),
+  status: z.enum(["scheduled", "confirmed", "completed", "cancelled", "no_show"]).optional(),
 });
 type PatchData = z.infer<typeof PatchSchema>;
-
-type GuardResult = { response: NextResponse } | { role: string };
-
-async function requireRole(
-  supabase: SupabaseServerClient,
-  allowed: string[]
-): Promise<GuardResult> {
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-
-  if (!user) {
-    return { response: NextResponse.json({ error: "Unauthorized" }, { status: 401 }) };
-  }
-
-  const { data: staff, error } = await supabase
-    .from("users")
-    .select("role")
-    .eq("auth_user_id", user.id)
-    .maybeSingle();
-
-  if (error) {
-    return { response: NextResponse.json({ error: error.message }, { status: 400 }) };
-  }
-
-  const role = staff?.role ?? null;
-  if (!role || !allowed.includes(role)) {
-    return { response: NextResponse.json({ error: "Forbidden" }, { status: 403 }) };
-  }
-
-  return { role };
-}
 
 async function resolveId(params: ParamsShape) {
   const resolved = await params;
@@ -58,7 +26,7 @@ async function resolveId(params: ParamsShape) {
 
 export async function PATCH(req: Request, { params }: { params: ParamsShape }) {
   const supabase = await createSupabaseServerClient();
-  const guard = await requireRole(supabase, ["admin", "receptionist", "doctor"]);
+  const guard = await requireStaffRole(supabase, ["admin", "receptionist", "doctor"]);
   if ("response" in guard) return guard.response;
 
   const appointmentId = await resolveId(params);
@@ -82,17 +50,25 @@ export async function PATCH(req: Request, { params }: { params: ParamsShape }) {
     updates = parsed.data;
   }
 
-  const payload: PatchData = updates && Object.keys(updates).length ? updates : { status: "cancelled" };
+  const payload: Record<string, unknown> = updates && Object.keys(updates).length ? { ...updates } : {};
+  if (!payload.status) {
+    payload.status = "cancelled";
+  }
 
-  const { error } = await supabase.from("appointments").update(payload).eq("id", appointmentId);
+  const { data, error } = await supabase
+    .from("appointments")
+    .update(payload)
+    .eq("id", appointmentId)
+    .select("id, patient_id, doctor_id, starts_at, ends_at, duration, reason, status")
+    .single();
 
   if (error) return NextResponse.json({ error: error.message }, { status: 400 });
-  return NextResponse.json({ ok: true });
+  return NextResponse.json({ ok: true, appointment: data });
 }
 
 export async function DELETE(_: Request, { params }: { params: ParamsShape }) {
   const supabase = await createSupabaseServerClient();
-  const guard = await requireRole(supabase, ["admin", "receptionist"]);
+  const guard = await requireStaffRole(supabase, ["admin", "receptionist"]);
   if ("response" in guard) return guard.response;
 
   const appointmentId = await resolveId(params);

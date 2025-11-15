@@ -2,9 +2,7 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { addInvoice, getInvoices } from "@/lib/billing/store";
-
-type SupabaseServerClient = Awaited<ReturnType<typeof createSupabaseServerClient>>;
-type GuardResult = { response: NextResponse } | { role: string };
+import { requireStaffRole } from "@/lib/staff/permissions";
 
 const LineSchema = z.object({
   description: z.string().trim().min(3).max(200),
@@ -21,39 +19,9 @@ const InvoiceSchema = z.object({
   line_items: z.array(LineSchema).min(1),
 });
 
-async function requireRole(
-  supabase: SupabaseServerClient,
-  allowed: string[]
-): Promise<GuardResult> {
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-
-  if (!user) {
-    return { response: NextResponse.json({ error: "Unauthorized" }, { status: 401 }) };
-  }
-
-  const { data: staff, error } = await supabase
-    .from("users")
-    .select("role")
-    .eq("auth_user_id", user.id)
-    .maybeSingle();
-
-  if (error) {
-    return { response: NextResponse.json({ error: error.message }, { status: 400 }) };
-  }
-
-  const role = staff?.role ?? null;
-  if (!role || !allowed.includes(role)) {
-    return { response: NextResponse.json({ error: "Forbidden" }, { status: 403 }) };
-  }
-
-  return { role };
-}
-
 export async function GET() {
   const supabase = await createSupabaseServerClient();
-  const guard = await requireRole(supabase, ["admin", "receptionist", "doctor"]);
+  const guard = await requireStaffRole(supabase, ["admin", "receptionist", "doctor"]);
   if ("response" in guard) return guard.response;
 
   const invoices = await getInvoices(supabase);
@@ -62,7 +30,7 @@ export async function GET() {
 
 export async function POST(req: Request) {
   const supabase = await createSupabaseServerClient();
-  const guard = await requireRole(supabase, ["admin", "receptionist"]);
+  const guard = await requireStaffRole(supabase, ["admin", "receptionist"]);
   if ("response" in guard) return guard.response;
 
   let payload: unknown;

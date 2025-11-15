@@ -1,6 +1,9 @@
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { fetchDashboardData } from "@/lib/dashboard/metrics";
 
+export const dynamic = "force-dynamic";
+export const revalidate = 0;
+
 function formatCurrency(value: number) {
   return new Intl.NumberFormat(undefined, { style: "currency", currency: "USD" }).format(value);
 }

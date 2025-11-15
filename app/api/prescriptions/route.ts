@@ -11,9 +11,7 @@ import {
   getInventoryItems,
   InventoryShortage,
 } from "@/lib/inventory/store";
-
-type SupabaseServerClient = Awaited<ReturnType<typeof createSupabaseServerClient>>;
-type GuardResult = { response: NextResponse } | { role: string };
+import { requireStaffRole } from "@/lib/staff/permissions";
 
 const LineSchema = z.object({
   item_id: z.string().min(1),
@@ -27,36 +25,6 @@ const PrescriptionSchema = z.object({
   notes: z.string().trim().max(500).optional().nullable(),
   lines: z.array(LineSchema).min(1),
 });
-
-async function requireRole(
-  supabase: SupabaseServerClient,
-  allowed: string[]
-): Promise<GuardResult> {
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-
-  if (!user) {
-    return { response: NextResponse.json({ error: "Unauthorized" }, { status: 401 }) };
-  }
-
-  const { data: staff, error } = await supabase
-    .from("users")
-    .select("role")
-    .eq("auth_user_id", user.id)
-    .maybeSingle();
-
-  if (error) {
-    return { response: NextResponse.json({ error: error.message }, { status: 400 }) };
-  }
-
-  const role = staff?.role ?? null;
-  if (!role || !allowed.includes(role)) {
-    return { response: NextResponse.json({ error: "Forbidden" }, { status: 403 }) };
-  }
-
-  return { role };
-}
 
 function coerceMap<T extends { id: string }>(rows: T[] | null | undefined) {
   return new Map((rows ?? []).map((row) => [row.id, row]));
@@ -76,7 +44,7 @@ function enrichPrescriptions(
 
 export async function GET() {
   const supabase = await createSupabaseServerClient();
-  const guard = await requireRole(supabase, ["admin", "doctor", "receptionist"]);
+  const guard = await requireStaffRole(supabase, ["admin", "doctor", "receptionist"]);
   if ("response" in guard) return guard.response;
 
   const prescriptions = await getPrescriptions(supabase);
@@ -103,7 +71,7 @@ export async function GET() {
 
 export async function POST(req: Request) {
   const supabase = await createSupabaseServerClient();
-  const guard = await requireRole(supabase, ["admin", "doctor", "receptionist"]);
+  const guard = await requireStaffRole(supabase, ["admin", "doctor", "receptionist"]);
   if ("response" in guard) return guard.response;
 
   let body: unknown;

@@ -2,42 +2,11 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { deletePrescription, findPrescription } from "@/lib/prescriptions/store";
+import { requireStaffRole } from "@/lib/staff/permissions";
 
-type SupabaseServerClient = Awaited<ReturnType<typeof createSupabaseServerClient>>;
-type GuardResult = { response: NextResponse } | { role: string };
 type ParamsShape = Promise<{ id?: string }>;
 
 const IdSchema = z.object({ id: z.string().uuid() });
-
-async function requireRole(
-  supabase: SupabaseServerClient,
-  allowed: string[]
-): Promise<GuardResult> {
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-
-  if (!user) {
-    return { response: NextResponse.json({ error: "Unauthorized" }, { status: 401 }) };
-  }
-
-  const { data: staff, error } = await supabase
-    .from("users")
-    .select("role")
-    .eq("auth_user_id", user.id)
-    .maybeSingle();
-
-  if (error) {
-    return { response: NextResponse.json({ error: error.message }, { status: 400 }) };
-  }
-
-  const role = staff?.role ?? null;
-  if (!role || !allowed.includes(role)) {
-    return { response: NextResponse.json({ error: "Forbidden" }, { status: 403 }) };
-  }
-
-  return { role };
-}
 
 async function resolveId(params: ParamsShape) {
   const resolved = await params;
@@ -48,7 +17,7 @@ async function resolveId(params: ParamsShape) {
 
 export async function GET(_: Request, { params }: { params: ParamsShape }) {
   const supabase = await createSupabaseServerClient();
-  const guard = await requireRole(supabase, ["admin", "doctor", "receptionist"]);
+  const guard = await requireStaffRole(supabase, ["admin", "doctor", "receptionist"]);
   if ("response" in guard) return guard.response;
 
   const id = await resolveId(params);
@@ -78,7 +47,7 @@ export async function GET(_: Request, { params }: { params: ParamsShape }) {
 
 export async function DELETE(_: Request, { params }: { params: ParamsShape }) {
   const supabase = await createSupabaseServerClient();
-  const guard = await requireRole(supabase, ["admin"]);
+  const guard = await requireStaffRole(supabase, ["admin"]);
   if ("response" in guard) return guard.response;
 
   const id = await resolveId(params);

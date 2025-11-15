@@ -1,6 +1,11 @@
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import NewAppointmentButton from "@/components/appointments/new-appointment";
 import RowActions from "@/components/appointments/row-actions";
+import { AppointmentNotesButton } from "@/components/notes/appointment-notes";
+import { getClinicDoctors } from "@/lib/staff/store";
+
+export const dynamic = "force-dynamic";
+export const revalidate = 0;
 
 function fmt(d: string) {
   const dt = new Date(d);
@@ -57,12 +62,16 @@ export default async function AppointmentsPage() {
   const supabase = await createSupabaseServerClient();
 
   // dropdown data
-  const { data: doctorsData } = await supabase
-    .from("users")
-    .select("id, full_name")
-    .eq("role", "doctor")
-    .order("full_name");
-  const doctors: Option[] = (doctorsData ?? []).map(d => ({ id: d.id, label: d.full_name ?? "Doctor" }));
+  let doctors: Option[] = [];
+  try {
+    const doctorRows = await getClinicDoctors(supabase);
+    doctors = doctorRows.map((doctor) => ({
+      id: doctor.id,
+      label: doctor.full_name ?? "Doctor",
+    }));
+  } catch (doctorError) {
+    console.error("[appointments] failed to load doctors", doctorError);
+  }
 
   const { data: patientsData } = await supabase
     .from("patients")
@@ -120,6 +129,7 @@ export default async function AppointmentsPage() {
                 <th className="text-left p-2">Patient</th>
                 <th className="text-left p-2">Doctor</th>
                 <th className="text-left p-2">When</th>
+                <th className="text-left p-2">Clinical notes</th>
                 <th className="text-left p-2">Status</th>
                 <th className="text-left p-2">Reason</th>
                 <th className="text-left p-2">Actions</th>
@@ -134,13 +144,23 @@ export default async function AppointmentsPage() {
                     {fmt(a.starts_at)} – {fmt(a.ends_at)}
                   </td>
                   <td className="p-2">
+                    <AppointmentNotesButton
+                      appointmentId={a.id}
+                      patientName={a.patient_name}
+                      patientMrn={a.patient_mrn}
+                      doctorName={a.doctor_name}
+                      startsAt={a.starts_at}
+                      endsAt={a.ends_at}
+                    />
+                  </td>
+                  <td className="p-2">
                     <span className={`badge ${appointmentStatusClass(a.status)}`}>
                       {a.status.replace(/_/g, " ")}
                     </span>
                   </td>
                   <td className="p-2">{a.reason}</td>
                   <td className="p-2">
-                    <RowActions id={a.id} patientName={a.patient_name} doctorName={a.doctor_name} />
+                    <RowActions id={a.id} status={a.status} />
                   </td>
                 </tr>
               ))}

@@ -6,9 +6,7 @@ import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { STAFF_ROLES } from "@/lib/staff/types";
 import { getStaffContacts, upsertStaffContact } from "@/lib/staff/store";
 import { createSupabaseAdminClient, createSupabaseServerAnonClient } from "@/lib/supabase/admin";
-
-type SupabaseServerClient = Awaited<ReturnType<typeof createSupabaseServerClient>>;
-type GuardResult = { response: NextResponse } | { role: string };
+import { requireStaffRole } from "@/lib/staff/permissions";
 
 const RoleEnum = z.enum(STAFF_ROLES);
 
@@ -18,36 +16,6 @@ const CreateSchema = z.object({
   phone: z.string().trim().max(40).optional().nullable(),
   role: RoleEnum,
 });
-
-async function requireRole(
-  supabase: SupabaseServerClient,
-  allowed: string[]
-): Promise<GuardResult> {
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-
-  if (!user) {
-    return { response: NextResponse.json({ error: "Unauthorized" }, { status: 401 }) };
-  }
-
-  const { data: staff, error } = await supabase
-    .from("users")
-    .select("role")
-    .eq("auth_user_id", user.id)
-    .maybeSingle();
-
-  if (error) {
-    return { response: NextResponse.json({ error: error.message }, { status: 400 }) };
-  }
-
-  const role = staff?.role ?? null;
-  if (!role || !allowed.includes(role)) {
-    return { response: NextResponse.json({ error: "Forbidden" }, { status: 403 }) };
-  }
-
-  return { role };
-}
 
 const STAFF_COLUMNS = "id, full_name, email, role, auth_user_id, created_at";
 
@@ -79,7 +47,7 @@ async function findAuthUserByEmail(adminClient: ReturnType<typeof createSupabase
 
 export async function GET() {
   const supabase = await createSupabaseServerClient();
-  const guard = await requireRole(supabase, ["admin"]);
+  const guard = await requireStaffRole(supabase, ["admin"]);
   if ("response" in guard) return guard.response;
 
   const { data, error } = await supabase
@@ -104,7 +72,7 @@ export async function GET() {
 
 export async function POST(req: Request) {
   const supabase = await createSupabaseServerClient();
-  const guard = await requireRole(supabase, ["admin"]);
+  const guard = await requireStaffRole(supabase, ["admin"]);
   if ("response" in guard) return guard.response;
 
   let payload: unknown;

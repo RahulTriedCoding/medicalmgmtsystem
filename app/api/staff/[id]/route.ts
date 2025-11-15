@@ -4,9 +4,8 @@ import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { STAFF_ROLES } from "@/lib/staff/types";
 import { deleteStaffContact, upsertStaffContact, getStaffContacts } from "@/lib/staff/store";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
+import { requireStaffRole } from "@/lib/staff/permissions";
 
-type SupabaseServerClient = Awaited<ReturnType<typeof createSupabaseServerClient>>;
-type GuardResult = { response: NextResponse } | { role: string; staffId: string | null };
 type ParamsShape = Promise<{ id?: string }>;
 
 const RoleEnum = z.enum(STAFF_ROLES);
@@ -26,36 +25,6 @@ const UpdateSchema = z
     message: "Provide at least one field to update",
   });
 
-async function requireRole(
-  supabase: SupabaseServerClient,
-  allowed: string[]
-): Promise<GuardResult> {
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-
-  if (!user) {
-    return { response: NextResponse.json({ error: "Unauthorized" }, { status: 401 }) };
-  }
-
-  const { data: staff, error } = await supabase
-    .from("users")
-    .select("role, id")
-    .eq("auth_user_id", user.id)
-    .maybeSingle();
-
-  if (error) {
-    return { response: NextResponse.json({ error: error.message }, { status: 400 }) };
-  }
-
-  const role = staff?.role ?? null;
-  if (!role || !allowed.includes(role)) {
-    return { response: NextResponse.json({ error: "Forbidden" }, { status: 403 }) };
-  }
-
-  return { role, staffId: staff?.id ?? null };
-}
-
 async function resolveId(params: ParamsShape) {
   const resolved = await params;
   const parsed = IdSchema.safeParse({ id: resolved?.id ?? "" });
@@ -67,7 +36,7 @@ const STAFF_COLUMNS = "id, full_name, email, role, auth_user_id, created_at";
 
 export async function PATCH(req: Request, { params }: { params: ParamsShape }) {
   const supabase = await createSupabaseServerClient();
-  const guard = await requireRole(supabase, ["admin"]);
+  const guard = await requireStaffRole(supabase, ["admin"]);
   if ("response" in guard) return guard.response;
 
   const id = await resolveId(params);
@@ -127,7 +96,7 @@ export async function PATCH(req: Request, { params }: { params: ParamsShape }) {
 
 export async function DELETE(_: Request, { params }: { params: ParamsShape }) {
   const supabase = await createSupabaseServerClient();
-  const guard = await requireRole(supabase, ["admin"]);
+  const guard = await requireStaffRole(supabase, ["admin"]);
   if ("response" in guard) return guard.response;
 
   const id = await resolveId(params);

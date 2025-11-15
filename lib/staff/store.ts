@@ -8,6 +8,12 @@ export type StaffContact = {
   pending: boolean;
 };
 
+export type StaffMember = {
+  id: string;
+  full_name: string | null;
+  role: string | null;
+};
+
 type ServerClient = SupabaseClient;
 
 async function ensureClient(client?: ServerClient) {
@@ -32,6 +38,26 @@ export async function getStaffContacts(
     phone: row.phone ?? null,
     pending: !!row.pending,
   }));
+}
+
+export async function getClinicDoctors(client?: ServerClient): Promise<StaffMember[]> {
+  const supabase = await ensureClient(client);
+  const { data, error } = await supabase
+    .from("users")
+    .select("id, full_name, role")
+    .order("full_name", { ascending: true });
+
+  if (error) {
+    throw new Error(error.message);
+  }
+
+  return (data ?? [])
+    .filter((row) => (row.role ?? "").toLowerCase() === "doctor")
+    .map((row) => ({
+      id: row.id,
+      full_name: row.full_name ?? null,
+      role: row.role ?? null,
+    }));
 }
 
 function normalizePhone(phone?: string | null) {

@@ -1,15 +1,13 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
+import { requireStaffRole } from "@/lib/staff/permissions";
 import {
   addInventoryItem,
   adjustInventoryQuantity,
   getInventoryItems,
   setInventoryQuantity,
 } from "@/lib/inventory/store";
-
-type SupabaseServerClient = Awaited<ReturnType<typeof createSupabaseServerClient>>;
-type GuardResult = { response: NextResponse } | { role: string };
 
 const CreateSchema = z.object({
   id: z.string().min(1).optional(),
@@ -26,39 +24,9 @@ const UpdateSchema = z.object({
   quantity: z.number().int().nonnegative().optional(),
 });
 
-async function requireRole(
-  supabase: SupabaseServerClient,
-  allowed: string[]
-): Promise<GuardResult> {
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-
-  if (!user) {
-    return { response: NextResponse.json({ error: "Unauthorized" }, { status: 401 }) };
-  }
-
-  const { data: staff, error } = await supabase
-    .from("users")
-    .select("role")
-    .eq("auth_user_id", user.id)
-    .maybeSingle();
-
-  if (error) {
-    return { response: NextResponse.json({ error: error.message }, { status: 400 }) };
-  }
-
-  const role = staff?.role ?? null;
-  if (!role || !allowed.includes(role)) {
-    return { response: NextResponse.json({ error: "Forbidden" }, { status: 403 }) };
-  }
-
-  return { role };
-}
-
 export async function GET() {
   const supabase = await createSupabaseServerClient();
-  const guard = await requireRole(supabase, ["admin", "doctor", "receptionist"]);
+  const guard = await requireStaffRole(supabase, ["admin", "doctor", "receptionist"]);
   if ("response" in guard) return guard.response;
 
   const items = await getInventoryItems(supabase);
@@ -67,7 +35,7 @@ export async function GET() {
 
 export async function POST(req: Request) {
   const supabase = await createSupabaseServerClient();
-  const guard = await requireRole(supabase, ["admin", "receptionist"]);
+  const guard = await requireStaffRole(supabase, ["admin", "receptionist"]);
   if ("response" in guard) return guard.response;
 
   let payload: unknown;
@@ -88,7 +56,7 @@ export async function POST(req: Request) {
 
 export async function PATCH(req: Request) {
   const supabase = await createSupabaseServerClient();
-  const guard = await requireRole(supabase, ["admin", "receptionist"]);
+  const guard = await requireStaffRole(supabase, ["admin", "receptionist"]);
   if ("response" in guard) return guard.response;
 
   let payload: unknown;

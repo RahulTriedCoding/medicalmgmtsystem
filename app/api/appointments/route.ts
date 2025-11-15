@@ -1,8 +1,7 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
-
-type SupabaseServerClient = Awaited<ReturnType<typeof createSupabaseServerClient>>;
+import { requireStaffRole } from "@/lib/staff/permissions";
 
 const AppointmentSchema = z.object({
   patient_id: z.string().uuid(),
@@ -13,41 +12,9 @@ const AppointmentSchema = z.object({
   reason: z.string().trim().max(200).optional().nullable(),
 });
 
-type GuardResult = { response: NextResponse } | { role: string };
-
-async function requireRole(
-  supabase: SupabaseServerClient,
-  allowed: string[]
-): Promise<GuardResult> {
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-
-  if (!user) {
-    return { response: NextResponse.json({ error: "Unauthorized" }, { status: 401 }) };
-  }
-
-  const { data: staff, error } = await supabase
-    .from("users")
-    .select("role")
-    .eq("auth_user_id", user.id)
-    .maybeSingle();
-
-  if (error) {
-    return { response: NextResponse.json({ error: error.message }, { status: 400 }) };
-  }
-
-  const role = staff?.role ?? null;
-  if (!role || !allowed.includes(role)) {
-    return { response: NextResponse.json({ error: "Forbidden" }, { status: 403 }) };
-  }
-
-  return { role };
-}
-
 export async function POST(req: Request) {
   const supabase = await createSupabaseServerClient();
-  const guard = await requireRole(supabase, ["admin", "receptionist", "doctor"]);
+  const guard = await requireStaffRole(supabase, ["admin", "receptionist", "doctor"]);
   if ("response" in guard) return guard.response;
 
   let body: unknown;

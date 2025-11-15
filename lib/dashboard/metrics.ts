@@ -112,7 +112,8 @@ export async function fetchDashboardData(supabase: SupabaseClient): Promise<Dash
       .from("appointments")
       .select("id", { count: "exact", head: true })
       .gte("starts_at", todayStart.toISOString())
-      .lt("starts_at", todayEnd.toISOString()),
+      .lt("starts_at", todayEnd.toISOString())
+      .neq("status", "cancelled"),
     supabase
       .from("appointments")
       .select(
@@ -120,6 +121,7 @@ export async function fetchDashboardData(supabase: SupabaseClient): Promise<Dash
           "patients:patient_id(full_name, mrn), doctors:doctor_id(full_name)"
       )
       .gte("starts_at", now.toISOString())
+      .neq("status", "cancelled")
       .order("starts_at", { ascending: true })
       .limit(5),
     invoicesPromise,

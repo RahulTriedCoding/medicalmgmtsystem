@@ -1,39 +1,9 @@
 import { NextResponse } from "next/server";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { getClinicalNotesForPatient } from "@/lib/clinical-notes/store";
+import { requireStaffRole } from "@/lib/staff/permissions";
 
-type SupabaseServerClient = Awaited<ReturnType<typeof createSupabaseServerClient>>;
-type GuardResult = { response: NextResponse } | { role: string; staffId: string | null };
 type ParamsShape = Promise<{ id?: string }>;
-
-async function requireDoctorOrAdmin(
-  supabase: SupabaseServerClient
-): Promise<GuardResult> {
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-
-  if (!user) {
-    return { response: NextResponse.json({ error: "Unauthorized" }, { status: 401 }) };
-  }
-
-  const { data: staff, error } = await supabase
-    .from("users")
-    .select("role, id")
-    .eq("auth_user_id", user.id)
-    .maybeSingle();
-
-  if (error) {
-    return { response: NextResponse.json({ error: error.message }, { status: 400 }) };
-  }
-
-  const role = staff?.role ?? null;
-  if (!role || !["admin", "doctor"].includes(role)) {
-    return { response: NextResponse.json({ error: "Forbidden" }, { status: 403 }) };
-  }
-
-  return { role, staffId: staff?.id ?? null };
-}
 
 async function resolveId(params: ParamsShape) {
   const resolved = await params;
@@ -44,7 +14,7 @@ async function resolveId(params: ParamsShape) {
 
 export async function GET(_: Request, { params }: { params: ParamsShape }) {
   const supabase = await createSupabaseServerClient();
-  const guard = await requireDoctorOrAdmin(supabase);
+  const guard = await requireStaffRole(supabase, ["admin", "doctor"]);
   if ("response" in guard) return guard.response;
 
   const id = await resolveId(params);

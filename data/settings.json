@@ -8,5 +8,6 @@
   "default_appointment_duration": 30,
   "enable_email_notifications": true,
   "enable_sms_notifications": false,
-  "billing_notes": ""
+  "billing_notes": "",
+  "singleton": true
 }

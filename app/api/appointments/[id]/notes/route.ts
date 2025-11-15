@@ -1,48 +1,19 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
+import { requireStaffRole } from "@/lib/staff/permissions";
 import {
   createClinicalNote,
   getClinicalNotesForAppointment,
 } from "@/lib/clinical-notes/store";
 
 type SupabaseServerClient = Awaited<ReturnType<typeof createSupabaseServerClient>>;
-type GuardResult = { response: NextResponse } | { role: string; staffId: string | null };
 type ParamsShape = Promise<{ id?: string }>;
 
 const BodySchema = z.object({
   note_text: z.string().trim().min(3).max(5000),
   template_key: z.string().trim().max(120).optional().nullable(),
 });
-
-async function requireDoctorAccess(
-  supabase: SupabaseServerClient
-): Promise<GuardResult> {
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-
-  if (!user) {
-    return { response: NextResponse.json({ error: "Unauthorized" }, { status: 401 }) };
-  }
-
-  const { data: staff, error } = await supabase
-    .from("users")
-    .select("role, id")
-    .eq("auth_user_id", user.id)
-    .maybeSingle();
-
-  if (error) {
-    return { response: NextResponse.json({ error: error.message }, { status: 400 }) };
-  }
-
-  const role = staff?.role ?? null;
-  if (!role || !["admin", "doctor"].includes(role)) {
-    return { response: NextResponse.json({ error: "Forbidden" }, { status: 403 }) };
-  }
-
-  return { role, staffId: staff?.id ?? null };
-}
 
 async function resolveAppointment(
   supabase: SupabaseServerClient,
@@ -70,7 +41,7 @@ async function resolveId(params: ParamsShape) {
 
 export async function GET(_: Request, { params }: { params: ParamsShape }) {
   const supabase = await createSupabaseServerClient();
-  const guard = await requireDoctorAccess(supabase);
+  const guard = await requireStaffRole(supabase, ["admin", "doctor"]);
   if ("response" in guard) return guard.response;
 
   const id = await resolveId(params);
@@ -82,6 +53,7 @@ export async function GET(_: Request, { params }: { params: ParamsShape }) {
   try {
     appointment = await resolveAppointment(supabase, id);
   } catch (error) {
+    console.error("[notes] load appointment error", error);
     const message = error instanceof Error ? error.message : "Failed to load appointment";
     return NextResponse.json({ error: message }, { status: 400 });
   }
@@ -102,6 +74,7 @@ export async function GET(_: Request, { params }: { params: ParamsShape }) {
     );
     return NextResponse.json({ ok: true, notes });
   } catch (error) {
+    console.error("[notes] fetch notes error", error);
     const message = error instanceof Error ? error.message : "Failed to load notes";
     return NextResponse.json({ error: message }, { status: 400 });
   }
@@ -109,7 +82,7 @@ export async function GET(_: Request, { params }: { params: ParamsShape }) {
 
 export async function POST(req: Request, { params }: { params: ParamsShape }) {
   const supabase = await createSupabaseServerClient();
-  const guard = await requireDoctorAccess(supabase);
+  const guard = await requireStaffRole(supabase, ["admin", "doctor"]);
   if ("response" in guard) return guard.response;
 
   const id = await resolveId(params);
@@ -121,6 +94,7 @@ export async function POST(req: Request, { params }: { params: ParamsShape }) {
   try {
     payload = await req.json();
   } catch {
+    console.error("[notes] invalid JSON body");
     return NextResponse.json({ error: "Invalid JSON" }, { status: 400 });
   }
 
@@ -133,6 +107,7 @@ export async function POST(req: Request, { params }: { params: ParamsShape }) {
   try {
     appointment = await resolveAppointment(supabase, id);
   } catch (error) {
+    console.error("[notes] load appointment error", error);
     const message = error instanceof Error ? error.message : "Failed to load appointment";
     return NextResponse.json({ error: message }, { status: 400 });
   }
@@ -167,6 +142,7 @@ export async function POST(req: Request, { params }: { params: ParamsShape }) {
     );
     return NextResponse.json({ ok: true, notes }, { status: 201 });
   } catch (error) {
+    console.error("[notes] create note error", error);
     const message = error instanceof Error ? error.message : "Failed to create note";
     return NextResponse.json({ error: message }, { status: 400 });
   }

@@ -2,9 +2,7 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { findInvoice, recordPayment } from "@/lib/billing/store";
-
-type SupabaseServerClient = Awaited<ReturnType<typeof createSupabaseServerClient>>;
-type GuardResult = { response: NextResponse } | { role: string };
+import { requireStaffRole } from "@/lib/staff/permissions";
 type ParamsShape = Promise<{ id?: string }>;
 
 const IdSchema = z.object({ id: z.string().uuid() });
@@ -20,36 +18,6 @@ const PaymentSchema = z.object({
     .nullable(),
 });
 
-async function requireRole(
-  supabase: SupabaseServerClient,
-  allowed: string[]
-): Promise<GuardResult> {
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-
-  if (!user) {
-    return { response: NextResponse.json({ error: "Unauthorized" }, { status: 401 }) };
-  }
-
-  const { data: staff, error } = await supabase
-    .from("users")
-    .select("role")
-    .eq("auth_user_id", user.id)
-    .maybeSingle();
-
-  if (error) {
-    return { response: NextResponse.json({ error: error.message }, { status: 400 }) };
-  }
-
-  const role = staff?.role ?? null;
-  if (!role || !allowed.includes(role)) {
-    return { response: NextResponse.json({ error: "Forbidden" }, { status: 403 }) };
-  }
-
-  return { role };
-}
-
 async function resolveId(params: ParamsShape) {
   const resolved = await params;
   const parsed = IdSchema.safeParse({ id: resolved?.id ?? "" });
@@ -59,7 +27,7 @@ async function resolveId(params: ParamsShape) {
 
 export async function GET(_: Request, { params }: { params: ParamsShape }) {
   const supabase = await createSupabaseServerClient();
-  const guard = await requireRole(supabase, ["admin", "receptionist", "doctor"]);
+  const guard = await requireStaffRole(supabase, ["admin", "receptionist", "doctor"]);
   if ("response" in guard) return guard.response;
 
   const id = await resolveId(params);
@@ -77,7 +45,7 @@ export async function GET(_: Request, { params }: { params: ParamsShape }) {
 
 export async function PATCH(req: Request, { params }: { params: ParamsShape }) {
   const supabase = await createSupabaseServerClient();
-  const guard = await requireRole(supabase, ["admin", "receptionist"]);
+  const guard = await requireStaffRole(supabase, ["admin", "receptionist"]);
   if ("response" in guard) return guard.response;
 
   const id = await resolveId(params);

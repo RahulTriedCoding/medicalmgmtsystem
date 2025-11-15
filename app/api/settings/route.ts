@@ -2,9 +2,7 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { getSettings, saveSettings } from "@/lib/settings/store";
-
-type SupabaseServerClient = Awaited<ReturnType<typeof createSupabaseServerClient>>;
-type GuardResult = { response: NextResponse } | { role: string };
+import { requireStaffRole } from "@/lib/staff/permissions";
 
 const SettingsSchema = z.object({
   clinic_name: z.string().trim().min(3).max(120),
@@ -19,39 +17,9 @@ const SettingsSchema = z.object({
   billing_notes: z.string().trim().max(500).optional(),
 });
 
-async function requireRole(
-  supabase: SupabaseServerClient,
-  allowed: string[]
-): Promise<GuardResult> {
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-
-  if (!user) {
-    return { response: NextResponse.json({ error: "Unauthorized" }, { status: 401 }) };
-  }
-
-  const { data: staff, error } = await supabase
-    .from("users")
-    .select("role")
-    .eq("auth_user_id", user.id)
-    .maybeSingle();
-
-  if (error) {
-    return { response: NextResponse.json({ error: error.message }, { status: 400 }) };
-  }
-
-  const role = staff?.role ?? null;
-  if (!role || !allowed.includes(role)) {
-    return { response: NextResponse.json({ error: "Forbidden" }, { status: 403 }) };
-  }
-
-  return { role };
-}
-
 export async function GET() {
   const supabase = await createSupabaseServerClient();
-  const guard = await requireRole(supabase, ["admin"]);
+  const guard = await requireStaffRole(supabase, ["admin"]);
   if ("response" in guard) return guard.response;
 
   const settings = await getSettings(supabase);
@@ -60,7 +28,7 @@ export async function GET() {
 
 export async function PATCH(req: Request) {
   const supabase = await createSupabaseServerClient();
-  const guard = await requireRole(supabase, ["admin"]);
+  const guard = await requireStaffRole(supabase, ["admin"]);
   if ("response" in guard) return guard.response;
 
   let payload: unknown;

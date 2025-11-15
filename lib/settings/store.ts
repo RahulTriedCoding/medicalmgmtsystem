@@ -1,4 +1,4 @@
-import type { SupabaseClient } from "@supabase/supabase-js";
+import type { PostgrestError, SupabaseClient } from "@supabase/supabase-js";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { getCurrentStaffContext } from "@/lib/staff/current";
 
@@ -58,7 +58,11 @@ async function ensureClient(client?: ServerClient) {
   return client ?? (await createSupabaseServerClient());
 }
 
+const SETTINGS_COLUMNS =
+  "id, clinic_name, clinic_email, clinic_phone, clinic_address, currency, timezone, default_appointment_duration, enable_email_notifications, enable_sms_notifications, billing_notes";
+
 type SettingsRow = {
+  id: string;
   clinic_name: string;
   clinic_email: string;
   clinic_phone: string;
@@ -86,16 +90,32 @@ function mapRowToSettings(row: SettingsRow): AppSettings {
   };
 }
 
+class SettingsSchemaError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = "SettingsSchemaError";
+  }
+}
+
+function isSchemaError(error: PostgrestError | null) {
+  if (!error) return false;
+  if (error.code === "42P01" || error.code === "42703") return true;
+  const message = error.message ?? "";
+  return /column .*does not exist/i.test(message) || /relation .*does not exist/i.test(message);
+}
+
 async function fetchSettingsRow(supabase: ServerClient): Promise<SettingsRow | null> {
   const { data, error } = await supabase
     .from("app_settings")
-    .select(
-      "clinic_name, clinic_email, clinic_phone, clinic_address, currency, timezone, default_appointment_duration, enable_email_notifications, enable_sms_notifications, billing_notes"
-    )
-    .eq("singleton", true)
+    .select(SETTINGS_COLUMNS)
+    .order("updated_at", { ascending: false })
+    .limit(1)
     .maybeSingle();
 
   if (error) {
+    if (isSchemaError(error)) {
+      throw new SettingsSchemaError(error.message);
+    }
     throw new Error(error.message);
   }
 
@@ -104,9 +124,9 @@ async function fetchSettingsRow(supabase: ServerClient): Promise<SettingsRow | n
 
 async function insertDefaultSettings(supabase: ServerClient, staffId: string | null): Promise<SettingsRow> {
   const defaults = normalize(defaultSettings);
-  const { data, error } = await supabase
-    .from("app_settings")
-    .insert({
+  return insertSettingsRow(
+    supabase,
+    {
       clinic_name: defaults.clinic_name,
       clinic_email: defaults.clinic_email,
       clinic_phone: defaults.clinic_phone,
@@ -118,13 +138,24 @@ async function insertDefaultSettings(supabase: ServerClient, staffId: string | n
       enable_sms_notifications: defaults.enable_sms_notifications,
       billing_notes: defaults.billing_notes,
       updated_by: staffId,
-    })
-    .select(
-      "clinic_name, clinic_email, clinic_phone, clinic_address, currency, timezone, default_appointment_duration, enable_email_notifications, enable_sms_notifications, billing_notes"
-    )
+    }
+  );
+}
+
+async function insertSettingsRow(
+  supabase: ServerClient,
+  payload: Omit<SettingsRow, "id"> & { updated_by?: string | null }
+): Promise<SettingsRow> {
+  const { data, error } = await supabase
+    .from("app_settings")
+    .insert(payload)
+    .select(SETTINGS_COLUMNS)
     .single();
 
   if (error) {
+    if (isSchemaError(error)) {
+      throw new SettingsSchemaError(error.message);
+    }
     throw new Error(error.message);
   }
 
@@ -133,11 +164,31 @@ async function insertDefaultSettings(supabase: ServerClient, staffId: string | n
 
 export async function getSettings(client?: ServerClient): Promise<AppSettings> {
   const supabase = await ensureClient(client);
-  let row = await fetchSettingsRow(supabase);
-  if (!row) {
-    const { staffId } = await getCurrentStaffContext(supabase);
-    row = await insertDefaultSettings(supabase, staffId);
+  let row: SettingsRow | null = null;
+
+  try {
+    row = await fetchSettingsRow(supabase);
+  } catch (error) {
+    if (error instanceof SettingsSchemaError) {
+      console.error("[settings] schema mismatch:", error.message);
+      return defaultSettings;
+    }
+    throw error;
   }
+
+  if (!row) {
+    try {
+      const { staffId } = await getCurrentStaffContext(supabase);
+      row = await insertDefaultSettings(supabase, staffId);
+    } catch (error) {
+      if (error instanceof SettingsSchemaError) {
+        console.error("[settings] unable to insert default settings due to schema mismatch:", error.message);
+        return defaultSettings;
+      }
+      throw error;
+    }
+  }
+
   return mapRowToSettings(row);
 }
 
@@ -146,32 +197,61 @@ export async function saveSettings(
   client?: ServerClient
 ): Promise<AppSettings> {
   const supabase = await ensureClient(client);
-  const existing = await getSettings(supabase);
-  const next = normalize({ ...existing, ...payload });
+  let currentRow: SettingsRow | null = null;
+  try {
+    currentRow = await fetchSettingsRow(supabase);
+  } catch (error) {
+    if (error instanceof SettingsSchemaError) {
+      throw new Error("Settings storage is not ready. Apply the latest Supabase migrations and try again.");
+    }
+    throw error;
+  }
+  const baseSettings = currentRow ? mapRowToSettings(currentRow) : defaultSettings;
+  const next = normalize({ ...baseSettings, ...payload });
   const { staffId } = await getCurrentStaffContext(supabase);
 
-  const { data, error } = await supabase
-    .from("app_settings")
-    .update({
-      clinic_name: next.clinic_name,
-      clinic_email: next.clinic_email,
-      clinic_phone: next.clinic_phone,
-      clinic_address: next.clinic_address,
-      currency: next.currency,
-      timezone: next.timezone,
-      default_appointment_duration: next.default_appointment_duration,
-      enable_email_notifications: next.enable_email_notifications,
-      enable_sms_notifications: next.enable_sms_notifications,
-      billing_notes: next.billing_notes,
-      updated_by: staffId,
-    })
-    .eq("singleton", true)
-    .select("clinic_name, clinic_email, clinic_phone, clinic_address, currency, timezone, default_appointment_duration, enable_email_notifications, enable_sms_notifications, billing_notes")
-    .single();
+  if (currentRow) {
+    const { data, error } = await supabase
+      .from("app_settings")
+      .update({
+        clinic_name: next.clinic_name,
+        clinic_email: next.clinic_email,
+        clinic_phone: next.clinic_phone,
+        clinic_address: next.clinic_address,
+        currency: next.currency,
+        timezone: next.timezone,
+        default_appointment_duration: next.default_appointment_duration,
+        enable_email_notifications: next.enable_email_notifications,
+        enable_sms_notifications: next.enable_sms_notifications,
+        billing_notes: next.billing_notes,
+        updated_by: staffId,
+      })
+      .eq("id", currentRow.id)
+      .select(SETTINGS_COLUMNS)
+      .single();
 
-  if (error) {
-    throw new Error(error.message);
+    if (error) {
+      if (isSchemaError(error)) {
+        throw new Error("Settings storage is not ready. Apply the latest Supabase migrations and try again.");
+      }
+      throw new Error(error.message);
+    }
+
+    return mapRowToSettings(data);
   }
 
-  return mapRowToSettings(data);
+  const inserted = await insertSettingsRow(supabase, {
+    clinic_name: next.clinic_name,
+    clinic_email: next.clinic_email,
+    clinic_phone: next.clinic_phone,
+    clinic_address: next.clinic_address,
+    currency: next.currency,
+    timezone: next.timezone,
+    default_appointment_duration: next.default_appointment_duration,
+    enable_email_notifications: next.enable_email_notifications,
+    enable_sms_notifications: next.enable_sms_notifications,
+    billing_notes: next.billing_notes,
+    updated_by: staffId,
+  });
+  return mapRowToSettings(inserted);
 }

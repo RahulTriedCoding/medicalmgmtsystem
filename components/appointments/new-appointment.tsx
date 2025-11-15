@@ -11,12 +11,18 @@ export default function NewAppointmentButton(props: {
   doctors: Option[];
 }) {
   const { patients, doctors } = props;
+  const hasDoctors = doctors.length > 0;
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
   const router = useRouter();
 
   async function onSubmit(form: FormData) {
     setLoading(true);
+    if (!hasDoctors) {
+      setLoading(false);
+      toast.error("Invite a doctor before creating appointments.");
+      return;
+    }
 
     const patient_id = String(form.get("patient_id") || "");
     const doctor_id = String(form.get("doctor_id") || "");
@@ -125,12 +131,22 @@ export default function NewAppointmentButton(props: {
 
               <div className="grid gap-1 sm:col-span-2">
                 <label className="text-sm text-muted-foreground">Doctor *</label>
-                <select name="doctor_id" required className="field">
-                  <option value="">— Select doctor —</option>
+                <select
+                  name="doctor_id"
+                  required
+                  className="field disabled:opacity-60"
+                  disabled={!hasDoctors}
+                >
+                  <option value="">{hasDoctors ? "— Select doctor —" : "No doctors available"}</option>
                   {doctors.map(d => (
                     <option key={d.id} value={d.id}>{d.label}</option>
                   ))}
                 </select>
+                {!hasDoctors && (
+                  <p className="text-xs text-amber-300/80">
+                    Invite doctors from the Staff page to schedule them here.
+                  </p>
+                )}
               </div>
 
               <div className="grid gap-1">
@@ -154,7 +170,7 @@ export default function NewAppointmentButton(props: {
               </div>
 
               <div className="sm:col-span-2 form-actions">
-                <button disabled={loading} className="btn-primary disabled:opacity-60">
+                <button disabled={loading || !hasDoctors} className="btn-primary disabled:opacity-60">
                   {loading ? "Saving..." : "Save"}
                 </button>
               </div>
