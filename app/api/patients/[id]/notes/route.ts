@@ -72,6 +72,10 @@ export async function POST(request: Request, { params }: { params: ParamsShape }
     typeof (body as { appointment_id?: unknown })?.appointment_id === "string"
       ? ((body as { appointment_id: string }).appointment_id || null)
       : null;
+  const templateId =
+    typeof (body as { template_id?: unknown })?.template_id === "string"
+      ? ((body as { template_id: string }).template_id || null)
+      : null;
 
   if (!noteText.trim()) {
     return NextResponse.json({ error: "Note text is required" }, { status: 400 });
@@ -84,6 +88,7 @@ export async function POST(request: Request, { params }: { params: ParamsShape }
         patientId,
         doctorId: guard.staffId,
         noteText,
+        templateKey: templateId,
       },
       supabase
     );

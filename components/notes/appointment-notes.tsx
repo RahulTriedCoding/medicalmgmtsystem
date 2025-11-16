@@ -4,6 +4,8 @@ import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import { createPortal } from "react-dom";
 import { toast } from "sonner";
+import type { NoteTemplate } from "@/lib/clinical-notes/templates";
+import { NoteTemplateSelect } from "@/components/notes/note-template-select";
 
 type ClinicalNote = {
   id: string;
@@ -12,24 +14,6 @@ type ClinicalNote = {
   template_key: string | null;
   created_at: string;
 };
-
-const TEMPLATES: Array<{ key: string; label: string; text: string }> = [
-  {
-    key: "general_consult",
-    label: "General consult",
-    text: "Subjective:\nObjective:\nAssessment:\nPlan:\n",
-  },
-  {
-    key: "follow_up",
-    label: "Follow-up",
-    text: "Interval history:\nFindings:\nPlan:\n",
-  },
-  {
-    key: "telehealth",
-    label: "Telehealth",
-    text: "Mode: video/audio\nSubjective:\nAssessment:\nPlan:\n",
-  },
-];
 
 type AppointmentNotesButtonProps = {
   appointmentId: string;
@@ -191,28 +175,15 @@ function NotesDialog({
                     Use a template or compose from scratch. Notes sync to Supabase for the entire care team.
                   </p>
                 </div>
-                <label className="text-sm font-medium text-muted-foreground">Template (optional)</label>
-                <select
-                  className="field"
-                  value={templateKey ?? ""}
-                  onChange={(event) => {
-                    const nextKey = event.target.value || null;
-                    setTemplateKey(nextKey);
-                    if (nextKey) {
-                      const template = TEMPLATES.find((t) => t.key === nextKey);
-                      if (template) {
-                        setNoteText((prev) => (prev.trim().length ? prev : template.text));
-                      }
+                <NoteTemplateSelect
+                  selectedTemplateId={templateKey}
+                  onTemplateChange={(template: NoteTemplate | null) => {
+                    setTemplateKey(template?.id ?? null);
+                    if (template) {
+                      setNoteText(template.body);
                     }
                   }}
-                >
-                  <option value="">No template</option>
-                  {TEMPLATES.map((template) => (
-                    <option key={template.key} value={template.key}>
-                      {template.label}
-                    </option>
-                  ))}
-                </select>
+                />
               </div>
 
               <div className="modal-panel flex min-h-[260px] flex-1 flex-col space-y-3 p-4">

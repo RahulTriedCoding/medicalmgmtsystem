@@ -5,6 +5,7 @@ import { toast } from "sonner";
 import { NotebookPen, Pencil } from "lucide-react";
 import type { Patient } from "@/lib/patients/types";
 import type { ClinicalNote } from "@/lib/clinical-notes/store";
+import { NoteTemplateSelect } from "@/components/notes/note-template-select";
 
 type Props = {
   patient: Patient;
@@ -29,6 +30,7 @@ function formatTimestamp(value?: string | null) {
 export function PatientNotesSection({ patient, initialNotes, canEdit }: Props) {
   const [notes, setNotes] = useState<LocalNote[]>(initialNotes);
   const [noteText, setNoteText] = useState("");
+  const [selectedTemplateId, setSelectedTemplateId] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editingText, setEditingText] = useState("");
@@ -51,7 +53,10 @@ export function PatientNotesSection({ patient, initialNotes, canEdit }: Props) {
       const response = await fetch(`/api/patients/${patient.id}/notes`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ note_text: trimmed }),
+        body: JSON.stringify({
+          note_text: trimmed,
+          template_id: selectedTemplateId,
+        }),
       });
       const payload = await response.json();
       if (!response.ok) {
@@ -59,6 +64,7 @@ export function PatientNotesSection({ patient, initialNotes, canEdit }: Props) {
       }
       await reloadAfterCreate(payload.note as LocalNote);
       setNoteText("");
+      setSelectedTemplateId(null);
       toast.success("Clinical note saved");
     } catch (error) {
       console.error("[notes] create error", error);
@@ -153,6 +159,15 @@ export function PatientNotesSection({ patient, initialNotes, canEdit }: Props) {
               onChange={(event) => setNoteText(event.target.value)}
               placeholder="Write the clinical note for this patient…"
             />
+            <NoteTemplateSelect
+              selectedTemplateId={selectedTemplateId}
+              onTemplateChange={(template) => {
+                setSelectedTemplateId(template?.id ?? null);
+                if (template) {
+                  setNoteText(template.body);
+                }
+              }}
+            />
             {errorText && <p className="text-sm text-rose-500">{errorText}</p>}
             <div className="form-actions">
               <button
@@ -160,6 +175,7 @@ export function PatientNotesSection({ patient, initialNotes, canEdit }: Props) {
                 className="btn-secondary"
                 onClick={() => {
                   setNoteText("");
+                  setSelectedTemplateId(null);
                   setErrorText(null);
                 }}
                 disabled={submitting}
