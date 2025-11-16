@@ -103,6 +103,12 @@ export async function createClinicalNote(
   client?: ServerClient
 ): Promise<ClinicalNote> {
   const supabase = await ensureClient(client);
+  if (!payload.patientId) {
+    throw new Error("Patient id is required");
+  }
+  if (!payload.doctorId) {
+    throw new Error("Doctor id is required");
+  }
   const trimmed = payload.noteText.trim();
   if (!trimmed) {
     throw new Error("Note text is required");
@@ -159,17 +165,28 @@ type FetchOptions = {
   doctorId?: string | null;
 };
 
+type AppointmentFetchOptions = FetchOptions & {
+  patientId?: string | null;
+};
+
 export async function getClinicalNotesForAppointment(
   appointmentId: string,
   client?: ServerClient,
-  options?: FetchOptions
+  options?: AppointmentFetchOptions
 ): Promise<ClinicalNote[]> {
   const supabase = await ensureClient(client);
   let query = supabase
     .from("clinical_notes")
     .select(NOTE_COLUMNS)
-    .eq("appointment_id", appointmentId)
     .order("created_at", { ascending: false });
+
+  if (options?.patientId) {
+    query = query
+      .eq("patient_id", options.patientId)
+      .or(`appointment_id.eq.${appointmentId},appointment_id.is.null`);
+  } else {
+    query = query.eq("appointment_id", appointmentId);
+  }
 
   if (options?.doctorId) {
     query = query.eq("doctor_id", options.doctorId);

@@ -70,7 +70,12 @@ export async function GET(_: Request, { params }: { params: ParamsShape }) {
     const notes = await getClinicalNotesForAppointment(
       appointment.id,
       supabase,
-      guard.role === "doctor" ? { doctorId: guard.staffId ?? undefined } : undefined
+      guard.role === "doctor"
+        ? {
+            patientId: appointment.patient_id,
+            doctorId: guard.staffId ?? undefined,
+          }
+        : { patientId: appointment.patient_id }
     );
     return NextResponse.json({ ok: true, notes });
   } catch (error) {
@@ -138,7 +143,12 @@ export async function POST(req: Request, { params }: { params: ParamsShape }) {
     const notes = await getClinicalNotesForAppointment(
       appointment.id,
       supabase,
-      guard.role === "doctor" ? { doctorId: guard.staffId ?? undefined } : undefined
+      guard.role === "doctor"
+        ? {
+            patientId: appointment.patient_id,
+            doctorId: guard.staffId ?? undefined,
+          }
+        : { patientId: appointment.patient_id }
     );
     return NextResponse.json({ ok: true, notes }, { status: 201 });
   } catch (error) {
