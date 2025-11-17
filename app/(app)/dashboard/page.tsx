@@ -66,8 +66,13 @@ export default async function DashboardPage() {
         </p>
       </div>
 
-      <section className="grid gap-3 md:grid-cols-2 lg:grid-cols-4">
-        <MetricCard title="Patients" value={metrics.patientCount.toLocaleString()} />
+      <section className="grid gap-3 md:grid-cols-2 lg:grid-cols-5">
+        <MetricCard title="Total patients" value={metrics.totalPatients.toLocaleString()} />
+        <MetricCard
+          title="Total doctors"
+          value={metrics.totalDoctors.toLocaleString()}
+          subtitle="Active staff with doctor role"
+        />
         <MetricCard
           title="Today's appointments"
           value={metrics.todaysAppointmentsCount.toLocaleString()}

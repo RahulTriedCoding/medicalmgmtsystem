@@ -1,6 +1,7 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { getInvoices, BillingStatus } from "@/lib/billing/store";
 import { getInventoryItems, InventoryItem } from "@/lib/inventory/store";
+import type { StaffRole } from "@/lib/staff/types";
 
 type AppointmentPerson = { full_name: string | null; mrn?: string | null };
 
@@ -42,7 +43,8 @@ type DashboardInventoryAlert = {
 };
 
 export type DashboardMetrics = {
-  patientCount: number;
+  totalPatients: number;
+  totalDoctors: number;
   todaysAppointmentsCount: number;
   outstandingBalance: number;
   overdueBalance: number;
@@ -86,6 +88,8 @@ function withMissingTableFallback<T>(promise: Promise<T>, fallback: T, pattern: 
   });
 }
 
+const DOCTOR_ROLE: StaffRole = "doctor";
+
 export async function fetchDashboardData(supabase: SupabaseClient): Promise<DashboardMetrics> {
   const todayStart = new Date();
   todayStart.setHours(0, 0, 0, 0);
@@ -102,12 +106,14 @@ export async function fetchDashboardData(supabase: SupabaseClient): Promise<Dash
 
   const [
     patientsQuery,
+    doctorsQuery,
     todaysAppointmentsQuery,
     upcomingAppointmentsQuery,
     invoices,
     inventoryItems,
   ] = await Promise.all([
     supabase.from("patients").select("id", { count: "exact", head: true }),
+    supabase.from("users").select("id", { count: "exact", head: true }).eq("role", DOCTOR_ROLE),
     supabase
       .from("appointments")
       .select("id", { count: "exact", head: true })
@@ -128,7 +134,8 @@ export async function fetchDashboardData(supabase: SupabaseClient): Promise<Dash
     inventoryPromise,
   ]);
 
-  const patientCount = patientsQuery.count ?? 0;
+  const totalPatients = patientsQuery.count ?? 0;
+  const totalDoctors = doctorsQuery.count ?? 0;
   const todaysAppointmentsCount = todaysAppointmentsQuery.count ?? 0;
   const rawAppointments: unknown[] = Array.isArray(upcomingAppointmentsQuery.data)
     ? upcomingAppointmentsQuery.data
@@ -189,7 +196,8 @@ export async function fetchDashboardData(supabase: SupabaseClient): Promise<Dash
   }));
 
   return {
-    patientCount,
+    totalPatients,
+    totalDoctors,
     todaysAppointmentsCount,
     outstandingBalance,
     overdueBalance,

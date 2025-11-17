@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { NewStaffButton } from "@/components/staff/new-staff";
 import { StaffRoleSelect } from "@/components/staff/staff-role-select";
@@ -95,7 +96,12 @@ export default async function StaffPage() {
             Manage clinic access for admins, doctors, nurses, and support teams.
           </p>
         </div>
-        <NewStaffButton />
+        <div className="flex flex-wrap items-center gap-2">
+          <Link href="/staff/attendance" className="btn-primary text-sm whitespace-nowrap">
+            Attendance
+          </Link>
+          <NewStaffButton />
+        </div>
       </div>
 
       {error && <div className="text-sm text-red-400">Error: {error.message}</div>}

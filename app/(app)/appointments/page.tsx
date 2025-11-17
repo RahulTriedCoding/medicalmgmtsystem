@@ -5,6 +5,7 @@ import { AppointmentNotesButton } from "@/components/notes/appointment-notes";
 import { cn } from "@/lib/utils";
 import { getClinicDoctors } from "@/lib/staff/store";
 import { AppointmentsSearch } from "@/components/appointments/appointments-search";
+import { getCurrentStaffContext } from "@/lib/staff/current";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
@@ -25,6 +26,7 @@ type AppointmentRow = {
   doctor_id: string | null;
   starts_at: string;
   ends_at: string;
+  duration: number | null;
   status: string;
   reason: string | null;
   visit_type: string | null;
@@ -144,6 +146,9 @@ export default async function AppointmentsPage({ searchParams }: PageProps) {
       ? resolvedSearchParams.search.trim()
       : "";
   const supabase = await createSupabaseServerClient();
+  const staffContext = await getCurrentStaffContext(supabase);
+  const viewerRole = staffContext.role ?? null;
+  const viewerStaffId = staffContext.staffId ?? null;
 
   // dropdown data
   let doctors: Option[] = [];
@@ -168,7 +173,7 @@ export default async function AppointmentsPage({ searchParams }: PageProps) {
   let appointmentQuery = supabase
     .from("appointments")
     .select(
-      "id, patient_id, doctor_id, starts_at, ends_at, status, reason, visit_type, " +
+      "id, patient_id, doctor_id, starts_at, ends_at, duration, status, reason, visit_type, " +
         "patients:patient_id(full_name, mrn), doctors:doctor_id(full_name)"
     )
     .gte("starts_at", todayIso)
@@ -192,8 +197,10 @@ export default async function AppointmentsPage({ searchParams }: PageProps) {
     : await appointmentQuery;
 
   // 🔧 flatten nested arrays/objects so TS is happy
-  const rows = Array.isArray(apptsRaw)
-    ? (apptsRaw.filter((entry) => isAppointmentRow(entry)) as AppointmentRow[])
+  const rows: AppointmentRow[] = Array.isArray(apptsRaw)
+    ? (apptsRaw as unknown[]).filter((entry): entry is AppointmentRow =>
+        isAppointmentRow(entry)
+      )
     : [];
   const appts = rows.map((a) => ({
     id: a.id,
@@ -201,6 +208,7 @@ export default async function AppointmentsPage({ searchParams }: PageProps) {
     doctor_id: a.doctor_id,
     starts_at: a.starts_at,
     ends_at: a.ends_at,
+    duration: typeof a.duration === "number" ? a.duration : null,
     status: a.status,
     reason: a.reason,
     visit_type: a.visit_type ?? "new",
@@ -274,7 +282,23 @@ export default async function AppointmentsPage({ searchParams }: PageProps) {
                     </td>
                     <td className="p-2">{a.reason}</td>
                     <td className="p-2">
-                      <RowActions id={a.id} status={a.status} />
+                      <RowActions
+                        id={a.id}
+                        status={a.status}
+                        appointment={{
+                          patientId: a.patient_id,
+                          doctorId: a.doctor_id,
+                          startsAt: a.starts_at,
+                          endsAt: a.ends_at,
+                          duration: a.duration,
+                          reason: a.reason ?? "",
+                          status: a.status,
+                        }}
+                        patients={patients}
+                        doctors={doctors}
+                        viewerRole={viewerRole}
+                        viewerStaffId={viewerStaffId}
+                      />
                     </td>
                   </tr>
                 );
