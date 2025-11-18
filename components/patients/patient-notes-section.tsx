@@ -16,13 +16,18 @@ type Props = {
 type LocalNote = ClinicalNote;
 
 function formatDate(value?: string | null) {
-  if (!value) return "-";
+  if (!value) return "—";
   const dt = new Date(value);
   return Number.isNaN(dt.getTime()) ? value : dt.toLocaleDateString();
 }
 
+function formatValue(value?: string | null) {
+  if (!value) return "—";
+  return value;
+}
+
 function formatTimestamp(value?: string | null) {
-  if (!value) return "-";
+  if (!value) return "—";
   const dt = new Date(value);
   return Number.isNaN(dt.getTime()) ? value : dt.toLocaleString();
 }
@@ -118,7 +123,7 @@ export function PatientNotesSection({ patient, initialNotes, canEdit }: Props) {
 
   return (
     <div className="space-y-6" id="notes">
-      <section className="surface p-5">
+      <section className="surface space-y-4 p-5">
         <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
           <div>
             <h2 className="text-xl font-semibold text-slate-900 dark:text-white">
@@ -130,6 +135,83 @@ export function PatientNotesSection({ patient, initialNotes, canEdit }: Props) {
             <span>Phone: {patient.phone ?? "—"}</span>
             <span>DOB: {formatDate(patient.dob)}</span>
             <span>Gender: {patient.gender ?? "—"}</span>
+          </div>
+        </div>
+        <div className="grid gap-4 lg:grid-cols-3">
+          <div>
+            <p className="text-xs uppercase tracking-wider text-muted-foreground">
+              Demographics
+            </p>
+            <dl className="mt-2 grid gap-2 text-sm">
+              <div>
+                <dt className="text-muted-foreground">Blood group</dt>
+                <dd className="font-medium text-slate-900 dark:text-white">{formatValue(patient.blood_group)}</dd>
+              </div>
+              <div>
+                <dt className="text-muted-foreground">Marital status</dt>
+                <dd className="font-medium text-slate-900 dark:text-white">
+                  {patient.marital_status ? patient.marital_status.replace(/_/g, " ") : "—"}
+                </dd>
+              </div>
+              <div>
+                <dt className="text-muted-foreground">Occupation</dt>
+                <dd className="font-medium text-slate-900 dark:text-white">{formatValue(patient.occupation)}</dd>
+              </div>
+              <div>
+                <dt className="text-muted-foreground">Allergies</dt>
+                <dd className="font-medium text-slate-900 dark:text-white">{formatValue(patient.allergies)}</dd>
+              </div>
+            </dl>
+          </div>
+          <div>
+            <p className="text-xs uppercase tracking-wider text-muted-foreground">
+              Address & location
+            </p>
+            <dl className="mt-2 grid gap-2 text-sm">
+              <div>
+                <dt className="text-muted-foreground">Address</dt>
+                <dd className="font-medium text-slate-900 dark:text-white">
+                  {patient.address ? (
+                    <span className="whitespace-pre-line">{patient.address}</span>
+                  ) : (
+                    "—"
+                  )}
+                </dd>
+              </div>
+              <div>
+                <dt className="text-muted-foreground">Location</dt>
+                <dd className="font-medium text-slate-900 dark:text-white">{formatValue(patient.location)}</dd>
+              </div>
+              <div className="grid grid-cols-2 gap-2">
+                <div>
+                  <dt className="text-muted-foreground">District</dt>
+                  <dd className="font-medium text-slate-900 dark:text-white">{formatValue(patient.district)}</dd>
+                </div>
+                <div>
+                  <dt className="text-muted-foreground">State</dt>
+                  <dd className="font-medium text-slate-900 dark:text-white">{formatValue(patient.state)}</dd>
+                </div>
+              </div>
+              <div>
+                <dt className="text-muted-foreground">Country</dt>
+                <dd className="font-medium text-slate-900 dark:text-white">{formatValue(patient.country)}</dd>
+              </div>
+            </dl>
+          </div>
+          <div>
+            <p className="text-xs uppercase tracking-wider text-muted-foreground">
+              Emergency contact
+            </p>
+            <dl className="mt-2 grid gap-2 text-sm">
+              <div>
+                <dt className="text-muted-foreground">Relative name</dt>
+                <dd className="font-medium text-slate-900 dark:text-white">{formatValue(patient.relative_name)}</dd>
+              </div>
+              <div>
+                <dt className="text-muted-foreground">Relative phone</dt>
+                <dd className="font-medium text-slate-900 dark:text-white">{formatValue(patient.relative_phone)}</dd>
+              </div>
+            </dl>
           </div>
         </div>
       </section>

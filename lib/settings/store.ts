@@ -1,6 +1,7 @@
 import type { PostgrestError, SupabaseClient } from "@supabase/supabase-js";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { getCurrentStaffContext } from "@/lib/staff/current";
+import { DEFAULT_CURRENCY_CODE, normalizeCurrencyCode } from "@/lib/currency";
 
 export type AppSettings = {
   clinic_name: string;
@@ -20,7 +21,7 @@ const defaultSettings: AppSettings = {
   clinic_email: "hello@example.com",
   clinic_phone: "+1 (555) 123-4567",
   clinic_address: "123 Main Street, Springfield, USA",
-  currency: "USD",
+  currency: DEFAULT_CURRENCY_CODE,
   timezone: "UTC",
   default_appointment_duration: 30,
   enable_email_notifications: true,
@@ -34,7 +35,7 @@ function normalize(payload: Partial<AppSettings>): AppSettings {
     clinic_email: payload.clinic_email?.trim() || defaultSettings.clinic_email,
     clinic_phone: payload.clinic_phone?.trim() || defaultSettings.clinic_phone,
     clinic_address: payload.clinic_address?.trim() || defaultSettings.clinic_address,
-    currency: payload.currency?.trim() || defaultSettings.currency,
+    currency: normalizeCurrencyCode(payload.currency),
     timezone: payload.timezone?.trim() || defaultSettings.timezone,
     default_appointment_duration:
       Number.isFinite(payload.default_appointment_duration) && payload.default_appointment_duration
@@ -59,10 +60,10 @@ async function ensureClient(client?: ServerClient) {
 }
 
 const SETTINGS_COLUMNS =
-  "id, clinic_name, clinic_email, clinic_phone, clinic_address, currency, timezone, default_appointment_duration, enable_email_notifications, enable_sms_notifications, billing_notes";
+  "singleton, clinic_name, clinic_email, clinic_phone, clinic_address, currency, timezone, default_appointment_duration, enable_email_notifications, enable_sms_notifications, billing_notes";
 
 type SettingsRow = {
-  id: string;
+  singleton: boolean;
   clinic_name: string;
   clinic_email: string;
   clinic_phone: string;
@@ -81,7 +82,7 @@ function mapRowToSettings(row: SettingsRow): AppSettings {
     clinic_email: row.clinic_email,
     clinic_phone: row.clinic_phone,
     clinic_address: row.clinic_address,
-    currency: row.currency,
+    currency: normalizeCurrencyCode(row.currency),
     timezone: row.timezone,
     default_appointment_duration: Number(row.default_appointment_duration ?? 30),
     enable_email_notifications: !!row.enable_email_notifications,
@@ -127,6 +128,7 @@ async function insertDefaultSettings(supabase: ServerClient, staffId: string | n
   return insertSettingsRow(
     supabase,
     {
+      singleton: true,
       clinic_name: defaults.clinic_name,
       clinic_email: defaults.clinic_email,
       clinic_phone: defaults.clinic_phone,
@@ -144,7 +146,7 @@ async function insertDefaultSettings(supabase: ServerClient, staffId: string | n
 
 async function insertSettingsRow(
   supabase: ServerClient,
-  payload: Omit<SettingsRow, "id"> & { updated_by?: string | null }
+  payload: Omit<SettingsRow, "singleton"> & { singleton?: boolean; updated_by?: string | null }
 ): Promise<SettingsRow> {
   const { data, error } = await supabase
     .from("app_settings")
@@ -226,7 +228,7 @@ export async function saveSettings(
         billing_notes: next.billing_notes,
         updated_by: staffId,
       })
-      .eq("id", currentRow.id)
+      .eq("singleton", true)
       .select(SETTINGS_COLUMNS)
       .single();
 
@@ -241,6 +243,7 @@ export async function saveSettings(
   }
 
   const inserted = await insertSettingsRow(supabase, {
+    singleton: true,
     clinic_name: next.clinic_name,
     clinic_email: next.clinic_email,
     clinic_phone: next.clinic_phone,

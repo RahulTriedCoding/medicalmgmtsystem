@@ -3,17 +3,20 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
+import { formatMoney } from "@/lib/currency";
 
 type Props = {
   invoiceId: string;
   invoiceNumber: string;
   balance: number;
+  currencyCode: string;
 };
 
-export function RecordPaymentButton({ invoiceId, invoiceNumber, balance }: Props) {
+export function RecordPaymentButton({ invoiceId, invoiceNumber, balance, currencyCode }: Props) {
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
   const router = useRouter();
+  const balanceLabel = formatMoney(balance, currencyCode);
 
   async function onSubmit(form: FormData) {
     const amount = parseFloat(String(form.get("amount") ?? ""));
@@ -77,7 +80,7 @@ export function RecordPaymentButton({ invoiceId, invoiceNumber, balance }: Props
                   Payment for {invoiceNumber}
                 </h2>
                 <p className="text-sm text-muted-foreground">
-                  Outstanding balance: ${balance.toFixed(2)}
+                  Outstanding balance: {balanceLabel}
                 </p>
               </div>
               <button className="btn-ghost text-xs" onClick={() => setOpen(false)}>

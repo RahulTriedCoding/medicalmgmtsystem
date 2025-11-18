@@ -6,6 +6,7 @@ import { createPortal } from "react-dom";
 import { toast } from "sonner";
 import type { NoteTemplate } from "@/lib/clinical-notes/templates";
 import { NoteTemplateSelect } from "@/components/notes/note-template-select";
+import { cn } from "@/lib/utils";
 
 type ClinicalNote = {
   id: string;
@@ -23,6 +24,7 @@ type AppointmentNotesButtonProps = {
   doctorName?: string | null;
   startsAt?: string;
   endsAt?: string;
+  className?: string;
 };
 
 export function AppointmentNotesButton({
@@ -33,12 +35,13 @@ export function AppointmentNotesButton({
   doctorName,
   startsAt,
   endsAt,
+  className,
 }: AppointmentNotesButtonProps) {
   const [open, setOpen] = useState(false);
 
   return (
     <>
-      <button onClick={() => setOpen(true)} className="btn-secondary text-xs px-4 py-2">
+      <button onClick={() => setOpen(true)} className={cn("btn-secondary", className)}>
         Clinical notes
       </button>
       {open && (
@@ -156,7 +159,7 @@ function NotesDialog({
             )}
           </div>
           <div className="flex flex-col items-end gap-2">
-            <Link href={`/patients/${patientId}/notes`} className="btn-secondary text-xs">
+            <Link href={`/patients/${patientId}/notes`} className="btn-secondary">
               Open patient notes
             </Link>
             <button className="btn-ghost text-xs" onClick={onClose}>

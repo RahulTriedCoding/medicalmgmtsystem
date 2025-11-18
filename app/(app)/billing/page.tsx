@@ -2,14 +2,13 @@ import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { getInvoices, BillingInvoice, BillingStatus } from "@/lib/billing/store";
 import { NewInvoiceButton } from "@/components/billing/new-invoice";
 import { RecordPaymentButton } from "@/components/billing/record-payment";
+import { DownloadInvoiceButton } from "@/components/billing/download-invoice-button";
 import { cn } from "@/lib/utils";
+import { getSettings } from "@/lib/settings/store";
+import { formatMoney } from "@/lib/currency";
 
 type Patient = { id: string; full_name: string | null; mrn: string | null };
 type Option = { id: string; label: string };
-
-function formatCurrency(value: number) {
-  return new Intl.NumberFormat(undefined, { style: "currency", currency: "USD" }).format(value);
-}
 
 function formatDate(value: string) {
   const dt = new Date(value);
@@ -58,10 +57,14 @@ function buildPatientOptions(patients: Patient[]): Option[] {
 export default async function BillingPage() {
   const supabase = await createSupabaseServerClient();
 
-  const [{ data: patients = [], error }, invoices] = await Promise.all([
+  const [{ data: patients = [], error }, invoices, settings] = await Promise.all([
     supabase.from("patients").select("id, full_name, mrn").order("full_name").limit(200),
     getInvoices(supabase),
+    getSettings(supabase),
   ]);
+
+  const currencyCode = settings.currency;
+  const formatCurrency = (value: number) => formatMoney(value, currencyCode);
 
   const patientOptions = buildPatientOptions(patients as Patient[]);
   const rows = enrichInvoices(invoices, patients as Patient[]);
@@ -164,11 +167,15 @@ export default async function BillingPage() {
                     {formatCurrency(invoice.balance)}
                   </td>
                   <td className="p-2">
-                    <RecordPaymentButton
-                      invoiceId={invoice.id}
-                      invoiceNumber={invoice.invoice_number}
-                      balance={invoice.balance}
-                    />
+                    <div className="flex flex-wrap gap-2">
+                      <RecordPaymentButton
+                        invoiceId={invoice.id}
+                        invoiceNumber={invoice.invoice_number}
+                        balance={invoice.balance}
+                        currencyCode={currencyCode}
+                      />
+                      <DownloadInvoiceButton invoiceId={invoice.id} invoiceNumber={invoice.invoice_number} />
+                    </div>
                   </td>
                 </tr>
               ))}

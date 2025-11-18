@@ -1,14 +1,18 @@
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import NewAppointmentButton from "@/components/appointments/new-appointment";
 import RowActions from "@/components/appointments/row-actions";
-import { AppointmentNotesButton } from "@/components/notes/appointment-notes";
 import { cn } from "@/lib/utils";
 import { getClinicDoctors } from "@/lib/staff/store";
 import { AppointmentsSearch } from "@/components/appointments/appointments-search";
 import { getCurrentStaffContext } from "@/lib/staff/current";
+import { AppointmentsDataProvider } from "@/components/appointments/data-context";
+import { AppointmentsPagination } from "@/components/appointments/appointments-pagination";
+import { startPerf, endPerf } from "@/lib/perf";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
+const APPOINTMENTS_PAGE_SIZE = 25;
+const PATIENT_OPTION_LIMIT = 200;
 
 function fmt(d: string) {
   const dt = new Date(d);
@@ -103,7 +107,7 @@ function visitTypeBadge(visitType?: string | null) {
 }
 
 type PageProps = {
-  searchParams: Promise<{ search?: string }>;
+  searchParams: Promise<{ search?: string; page?: string }>;
 };
 
 async function findPatientIdsBySearch(
@@ -113,27 +117,23 @@ async function findPatientIdsBySearch(
   const sanitized = query.replace(/[%_\\]/g, (char) => `\\${char}`);
   const likePattern = `%${sanitized}%`;
   const ids = new Set<string>();
-
-  const { data: nameMatches, error: nameError } = await supabase
-    .from("patients")
-    .select("id")
-    .ilike("full_name", likePattern)
-    .limit(200);
-  if (nameError) {
-    console.error("[appointments] patient name search error", nameError);
-  } else {
-    (nameMatches ?? []).forEach((row) => ids.add(row.id));
-  }
-
-  const { data: mrnMatches, error: mrnError } = await supabase
-    .from("patients")
-    .select("id")
-    .ilike("mrn", likePattern)
-    .limit(200);
-  if (mrnError) {
-    console.error("[appointments] patient MRN search error", mrnError);
-  } else {
-    (mrnMatches ?? []).forEach((row) => ids.add(row.id));
+  const timer = startPerf(`[perf] appointments:findPatientIds "${query}"`);
+  try {
+    const fields: Array<"full_name" | "mrn"> = ["full_name", "mrn"];
+    for (const field of fields) {
+      const { data, error } = await supabase
+        .from("patients")
+        .select("id")
+        .ilike(field, likePattern)
+        .limit(PATIENT_OPTION_LIMIT);
+      if (error) {
+        console.error(`[appointments] patient ${field} search error`, error);
+        continue;
+      }
+      (data ?? []).forEach((row) => ids.add(row.id));
+    }
+  } finally {
+    endPerf(timer);
   }
 
   return Array.from(ids);
@@ -145,6 +145,12 @@ export default async function AppointmentsPage({ searchParams }: PageProps) {
     typeof resolvedSearchParams?.search === "string"
       ? resolvedSearchParams.search.trim()
       : "";
+  const requestedPage = Number(resolvedSearchParams?.page ?? "1");
+  const page = Number.isFinite(requestedPage) && requestedPage > 0 ? Math.floor(requestedPage) : 1;
+  const pageSize = APPOINTMENTS_PAGE_SIZE;
+  const from = (page - 1) * pageSize;
+  const to = from + pageSize - 1;
+  const pageTimer = startPerf("[perf] appointments:page");
   const supabase = await createSupabaseServerClient();
   const staffContext = await getCurrentStaffContext(supabase);
   const viewerRole = staffContext.role ?? null;
@@ -153,7 +159,9 @@ export default async function AppointmentsPage({ searchParams }: PageProps) {
   // dropdown data
   let doctors: Option[] = [];
   try {
+    const doctorTimer = startPerf("[perf] appointments:fetchDoctors");
     const doctorRows = await getClinicDoctors(supabase);
+    endPerf(doctorTimer);
     doctors = doctorRows.map((doctor) => ({
       id: doctor.id,
       label: doctor.full_name ?? "Doctor",
@@ -162,11 +170,17 @@ export default async function AppointmentsPage({ searchParams }: PageProps) {
     console.error("[appointments] failed to load doctors", doctorError);
   }
 
+  const patientOptionsTimer = startPerf("[perf] appointments:patientOptions");
   const { data: patientsData } = await supabase
     .from("patients")
     .select("id, full_name, mrn")
-    .order("full_name");
-  const patients: Option[] = (patientsData ?? []).map(p => ({ id: p.id, label: `${p.full_name} (${p.mrn})` }));
+    .order("full_name")
+    .limit(PATIENT_OPTION_LIMIT);
+  endPerf(patientOptionsTimer);
+  const patients: Option[] = (patientsData ?? []).map((p) => ({
+    id: p.id,
+    label: `${p.full_name} (${p.mrn})`,
+  }));
 
   // appointments with nested relations
   const todayIso = new Date(new Date().toDateString()).toISOString();
@@ -174,11 +188,12 @@ export default async function AppointmentsPage({ searchParams }: PageProps) {
     .from("appointments")
     .select(
       "id, patient_id, doctor_id, starts_at, ends_at, duration, status, reason, visit_type, " +
-        "patients:patient_id(full_name, mrn), doctors:doctor_id(full_name)"
+        "patients:patient_id(full_name, mrn), doctors:doctor_id(full_name)",
+      { count: "exact" }
     )
     .gte("starts_at", todayIso)
     .order("starts_at", { ascending: true })
-    .limit(200);
+    .range(from, to);
 
   let filteredPatientIds: string[] | null = null;
   let skipAppointmentsFetch = false;
@@ -192,9 +207,19 @@ export default async function AppointmentsPage({ searchParams }: PageProps) {
     }
   }
 
-  const { data: apptsRaw, error } = skipAppointmentsFetch
-    ? { data: [], error: null }
-    : await appointmentQuery;
+  let totalAppointments = 0;
+  let error: { message: string } | null = null;
+  let apptsRaw: unknown[] = [];
+  if (!skipAppointmentsFetch) {
+    const apptTimer = startPerf("[perf] appointments:fetchList");
+    const response = await appointmentQuery;
+    endPerf(apptTimer);
+    apptsRaw = response.data ?? [];
+    error = response.error;
+    totalAppointments = response.count ?? 0;
+  } else {
+    apptsRaw = [];
+  }
 
   // 🔧 flatten nested arrays/objects so TS is happy
   const rows: AppointmentRow[] = Array.isArray(apptsRaw)
@@ -217,96 +242,97 @@ export default async function AppointmentsPage({ searchParams }: PageProps) {
     doctor_name:  Array.isArray(a.doctors)  ? a.doctors[0]?.full_name  : a.doctors?.full_name,
   }));
 
-  return (
-    <div className="space-y-4">
-      <div className="flex flex-wrap items-center justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-semibold text-slate-900 dark:text-white">Appointments</h1>
-          <p className="text-sm text-muted-foreground">Monitor today&apos;s schedule and take timely actions.</p>
-        </div>
-        <NewAppointmentButton patients={patients} doctors={doctors} />
-      </div>
-      <AppointmentsSearch initialValue={searchQuery} />
+  const showPagination = !error && (totalAppointments > 0 || page > 1);
 
-      {error ? (
-        <div className="text-sm text-red-600 dark:text-red-400">Error: {error.message}</div>
-      ) : !appts.length ? (
-        <div className="text-sm text-muted-foreground">
-          {searchQuery ? "No appointments match the search." : "No upcoming appointments."}
+  const content = (
+    <AppointmentsDataProvider patients={patients} doctors={doctors}>
+      <div className="space-y-4">
+        <div className="flex flex-wrap items-center justify-between gap-4">
+          <div>
+            <h1 className="text-2xl font-semibold text-slate-900 dark:text-white">Appointments</h1>
+            <p className="text-sm text-muted-foreground">
+              Monitor today&apos;s schedule and take timely actions.
+            </p>
+          </div>
+          <NewAppointmentButton patients={patients} doctors={doctors} />
         </div>
-      ) : (
-        <div className="surface overflow-hidden">
-          <table className="w-full text-sm">
-            <thead className="bg-muted">
-              <tr>
-                <th className="text-left p-2">Patient</th>
-                <th className="text-left p-2">Visit type</th>
-                <th className="text-left p-2">Doctor</th>
-                <th className="text-left p-2">When</th>
-                <th className="text-left p-2">Clinical notes</th>
-                <th className="text-left p-2">Status</th>
-                <th className="text-left p-2">Reason</th>
-                <th className="text-left p-2">Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              {appts.map((a) => {
-                const visitBadge = visitTypeBadge(a.visit_type);
-                return (
-                  <tr key={a.id} className="border-t">
-                    <td className="p-2">
-                      {a.patient_name} ({a.patient_mrn})
-                    </td>
-                    <td className="p-2">
-                      <span className={visitBadge.className}>{visitBadge.label}</span>
-                    </td>
-                    <td className="p-2">{a.doctor_name ?? "—"}</td>
-                    <td className="p-2">
-                      {fmt(a.starts_at)} – {fmt(a.ends_at)}
-                    </td>
-                    <td className="p-2">
-                      <AppointmentNotesButton
-                        appointmentId={a.id}
-                        patientId={a.patient_id}
-                        patientName={a.patient_name}
-                        patientMrn={a.patient_mrn}
-                        doctorName={a.doctor_name}
-                        startsAt={a.starts_at}
-                        endsAt={a.ends_at}
-                      />
-                    </td>
-                    <td className="p-2">
-                      <span className={appointmentStatusClass(a.status)}>
-                        {a.status.replace(/_/g, " ")}
-                      </span>
-                    </td>
-                    <td className="p-2">{a.reason}</td>
-                    <td className="p-2">
-                      <RowActions
-                        id={a.id}
-                        status={a.status}
-                        appointment={{
-                          patientId: a.patient_id,
-                          doctorId: a.doctor_id,
-                          startsAt: a.starts_at,
-                          endsAt: a.ends_at,
-                          duration: a.duration,
-                          reason: a.reason ?? "",
-                          status: a.status,
-                        }}
-                        patients={patients}
-                        doctors={doctors}
-                        viewerRole={viewerRole}
-                        viewerStaffId={viewerStaffId}
-                      />
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
-        </div>
-      )}
-    </div>
+        <AppointmentsSearch initialValue={searchQuery} />
+
+        {error ? (
+          <div className="text-sm text-red-600 dark:text-red-400">Error: {error.message}</div>
+        ) : !appts.length ? (
+          <div className="text-sm text-muted-foreground">
+            {searchQuery ? "No appointments match the search." : "No upcoming appointments."}
+          </div>
+        ) : (
+          <div className="surface overflow-hidden">
+            <table className="w-full text-sm">
+              <thead className="bg-muted">
+                <tr>
+                  <th className="text-left p-2">Patient</th>
+                  <th className="text-left p-2">Visit type</th>
+                  <th className="text-left p-2">Doctor</th>
+                  <th className="text-left p-2">When</th>
+                  <th className="text-left p-2">Status</th>
+                  <th className="text-left p-2">Reason</th>
+                  <th className="text-left p-2">Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {appts.map((a) => {
+                  const visitBadge = visitTypeBadge(a.visit_type);
+                  return (
+                    <tr key={a.id} className="border-t">
+                      <td className="p-2">
+                        {a.patient_name} ({a.patient_mrn})
+                      </td>
+                      <td className="p-2">
+                        <span className={visitBadge.className}>{visitBadge.label}</span>
+                      </td>
+                      <td className="p-2">{a.doctor_name ?? "—"}</td>
+                      <td className="p-2">
+                        {fmt(a.starts_at)} – {fmt(a.ends_at)}
+                      </td>
+                      <td className="p-2">
+                        <span className={appointmentStatusClass(a.status)}>
+                          {a.status.replace(/_/g, " ")}
+                        </span>
+                      </td>
+                      <td className="p-2">{a.reason}</td>
+                      <td className="p-2">
+                        <RowActions
+                          id={a.id}
+                          status={a.status}
+                          appointment={{
+                            patientId: a.patient_id,
+                            doctorId: a.doctor_id,
+                            startsAt: a.starts_at,
+                            endsAt: a.ends_at,
+                            duration: a.duration,
+                            reason: a.reason ?? "",
+                            status: a.status,
+                          }}
+                          viewerRole={viewerRole}
+                          viewerStaffId={viewerStaffId}
+                          patientName={a.patient_name}
+                          patientMrn={a.patient_mrn}
+                          doctorName={a.doctor_name}
+                        />
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        )}
+        {showPagination && (
+          <AppointmentsPagination page={page} pageSize={pageSize} total={totalAppointments} />
+        )}
+      </div>
+    </AppointmentsDataProvider>
   );
+
+  endPerf(pageTimer);
+  return content;
 }

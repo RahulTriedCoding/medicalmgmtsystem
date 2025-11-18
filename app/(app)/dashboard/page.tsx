@@ -1,12 +1,11 @@
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { fetchDashboardData } from "@/lib/dashboard/metrics";
+import { startPerf, endPerf } from "@/lib/perf";
+import { getSettings } from "@/lib/settings/store";
+import { formatMoney } from "@/lib/currency";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
-
-function formatCurrency(value: number) {
-  return new Intl.NumberFormat(undefined, { style: "currency", currency: "USD" }).format(value);
-}
 
 function formatDateTime(value: string) {
   const dt = new Date(value);
@@ -53,8 +52,12 @@ function MetricCard({ title, value, subtitle }: { title: string; value: string; 
 }
 
 export default async function DashboardPage() {
+  const pageTimer = startPerf("[perf] dashboard:page");
   const supabase = await createSupabaseServerClient();
-  const metrics = await fetchDashboardData(supabase);
+  const [metrics, settings] = await Promise.all([fetchDashboardData(supabase), getSettings(supabase)]);
+  const currencyCode = settings.currency;
+  const formatCurrency = (value: number) => formatMoney(value, currencyCode);
+  endPerf(pageTimer);
 
   return (
     <div className="space-y-6">

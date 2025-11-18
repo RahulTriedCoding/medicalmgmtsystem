@@ -5,9 +5,22 @@ import { Search } from "lucide-react";
 import type { Patient } from "@/lib/patients/types";
 import EditPatientButton from "@/components/patients/edit-patient";
 import { PatientNotesButton } from "@/components/notes/patient-notes";
+import {
+  PATIENT_CREATED_EVENT,
+  PATIENT_UPDATED_EVENT,
+  type PatientEventDetail,
+} from "@/lib/patients/events";
+import { startPerf, endPerf } from "@/lib/perf";
+
+const isDev = process.env.NODE_ENV !== "production";
 
 type Props = {
   initialPatients: Patient[];
+  initialMeta: {
+    total: number;
+    page: number;
+    pageSize: number;
+  };
 };
 
 function fmtDate(value?: string | null) {
@@ -16,38 +29,92 @@ function fmtDate(value?: string | null) {
   return Number.isNaN(dt.getTime()) ? value : dt.toLocaleDateString();
 }
 
-export function PatientsSearchPanel({ initialPatients }: Props) {
+function matchesQuery(patient: Patient, query: string) {
+  const trimmed = query.trim().toLowerCase();
+  if (!trimmed) return true;
+  return (
+    patient.full_name.toLowerCase().includes(trimmed) ||
+    patient.mrn.toLowerCase().includes(trimmed) ||
+    (patient.phone ?? "").toLowerCase().includes(trimmed)
+  );
+}
+
+function upsertPatient(list: Patient[], next: Patient) {
+  const index = list.findIndex((patient) => patient.id === next.id);
+  if (index === -1) {
+    return [next, ...list];
+  }
+  const copy = [...list];
+  copy[index] = next;
+  return copy;
+}
+
+function removePatient(list: Patient[], id: string) {
+  return list.filter((patient) => patient.id !== id);
+}
+
+export function PatientsSearchPanel({ initialPatients, initialMeta }: Props) {
   const [query, setQuery] = useState("");
   const [patients, setPatients] = useState<Patient[]>(initialPatients);
+  const [page, setPage] = useState(initialMeta.page);
+  const [pageSize, setPageSize] = useState(initialMeta.pageSize);
+  const [total, setTotal] = useState(initialMeta.total);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const firstRun = useRef(true);
+  const queryRef = useRef(query);
+  const pageRef = useRef(page);
+  const pageSizeRef = useRef(pageSize);
+
+  useEffect(() => {
+    if (isDev) {
+      console.log("[perf] PatientsSearchPanel mounted", {
+        initialCount: initialPatients.length,
+        total: initialMeta.total,
+      });
+    }
+  }, [initialMeta.total, initialPatients.length]);
+
+  useEffect(() => {
+    queryRef.current = query;
+  }, [query]);
+
+  useEffect(() => {
+    pageRef.current = page;
+  }, [page]);
+
+  useEffect(() => {
+    setPatients(initialPatients);
+    setTotal(initialMeta.total);
+    setPage(initialMeta.page);
+    setPageSize(initialMeta.pageSize);
+  }, [initialPatients, initialMeta.page, initialMeta.pageSize, initialMeta.total]);
+
+  useEffect(() => {
+    pageSizeRef.current = pageSize;
+  }, [pageSize]);
 
   useEffect(() => {
     const trimmed = query.trim();
     const controller = new AbortController();
 
-    if (firstRun.current && !trimmed) {
+    if (firstRun.current) {
       firstRun.current = false;
-      setPatients(initialPatients);
       return () => controller.abort();
     }
-    firstRun.current = false;
 
     const debounce = setTimeout(async () => {
       setLoading(true);
-      if (!trimmed) {
-        // optimistic reset while fetching the default view
-        setPatients(initialPatients);
-      }
+      const params = new URLSearchParams();
+      params.set("page", String(page));
+      params.set("pageSize", String(pageSize));
+      if (trimmed) params.set("search", trimmed);
+      const label = `[perf] patients:panel fetch q="${trimmed || "all"}" page=${page}`;
+      const timer = startPerf(label);
       try {
-        const params = new URLSearchParams();
-        if (trimmed) params.set("search", trimmed);
-        const qs = params.toString();
-        const response = await fetch(
-          qs ? `/api/patients?${qs}` : "/api/patients",
-          { signal: controller.signal }
-        );
+        const response = await fetch(`/api/patients?${params.toString()}`, {
+          signal: controller.signal,
+        });
         const payload = await response.json();
         if (!response.ok) {
           setError(payload?.error ?? "Failed to search patients.");
@@ -55,23 +122,72 @@ export function PatientsSearchPanel({ initialPatients }: Props) {
           return;
         }
         setPatients(payload.patients ?? []);
+        setTotal(typeof payload.total === "number" ? payload.total : 0);
         setError(null);
       } catch (err) {
         if ((err as Error)?.name === "AbortError") return;
         setError("Unable to search patients right now.");
         setPatients([]);
       } finally {
+        endPerf(timer);
         setLoading(false);
       }
-    }, 450);
+    }, 350);
 
     return () => {
       controller.abort();
       clearTimeout(debounce);
     };
-  }, [query, initialPatients]);
+  }, [query, page, pageSize]);
+
+  useEffect(() => {
+    if (!isDev) return;
+    console.log("[perf] PatientsSearchPanel state", {
+      query,
+      page,
+      count: patients.length,
+    });
+  }, [patients.length, page, query]);
+
+  useEffect(() => {
+    function handleCreated(event: Event) {
+      const detail = (event as CustomEvent<PatientEventDetail>).detail;
+      if (!detail?.patient) return;
+      const patient = detail.patient;
+      setTotal((prev) => prev + 1);
+      if (!matchesQuery(patient, queryRef.current)) return;
+      if (pageRef.current !== 1) return;
+      setPatients((prev) => upsertPatient(prev, patient).slice(0, pageSizeRef.current));
+    }
+
+    function handleUpdated(event: Event) {
+      const detail = (event as CustomEvent<PatientEventDetail>).detail;
+      if (!detail?.patient) return;
+      const patient = detail.patient;
+      const matches = matchesQuery(patient, queryRef.current);
+      setPatients((prev) => {
+        if (!matches) {
+          return prev.some((item) => item.id === patient.id) ? removePatient(prev, patient.id) : prev;
+        }
+        return upsertPatient(prev, patient);
+      });
+    }
+
+    window.addEventListener(PATIENT_CREATED_EVENT, handleCreated as EventListener);
+    window.addEventListener(PATIENT_UPDATED_EVENT, handleUpdated as EventListener);
+
+    return () => {
+      window.removeEventListener(PATIENT_CREATED_EVENT, handleCreated as EventListener);
+      window.removeEventListener(PATIENT_UPDATED_EVENT, handleUpdated as EventListener);
+    };
+  }, []);
 
   const hasResults = patients.length > 0;
+  const totalPages = Math.max(1, Math.ceil(Math.max(total, 0) / pageSize));
+  const showingStart = total > 0 ? (page - 1) * pageSize + 1 : 0;
+  const showingEnd = total > 0 ? Math.min(total, showingStart + patients.length - 1) : 0;
+  const canGoBack = page > 1;
+  const canGoForward = page < totalPages;
 
   return (
     <div className="space-y-4">
@@ -80,7 +196,10 @@ export function PatientsSearchPanel({ initialPatients }: Props) {
           <Search className="h-4 w-4 text-muted-foreground" />
           <input
             value={query}
-            onChange={(event) => setQuery(event.target.value)}
+            onChange={(event) => {
+              setQuery(event.target.value);
+              setPage(1);
+            }}
             placeholder="Search patients by name, MRN, or phone…"
             className="w-full bg-transparent text-sm text-slate-900 placeholder:text-slate-500 focus:outline-none dark:text-white dark:placeholder:text-white/60"
             aria-label="Search patients"
@@ -91,6 +210,30 @@ export function PatientsSearchPanel({ initialPatients }: Props) {
             Searching…
           </span>
         )}
+      </div>
+      <div className="flex flex-col gap-2 text-xs text-muted-foreground sm:flex-row sm:items-center sm:justify-between">
+        <span>
+          {total > 0 ? `Showing ${showingStart}-${showingEnd} of ${total}` : "No patients to display"}
+        </span>
+        <div className="flex items-center gap-2">
+          <button
+            className="btn-ghost px-3 py-1 text-xs"
+            disabled={!canGoBack || loading}
+            onClick={() => setPage((prev) => Math.max(1, prev - 1))}
+          >
+            Previous
+          </button>
+          <span className="tabular-nums">
+            Page {page} / {totalPages}
+          </span>
+          <button
+            className="btn-ghost px-3 py-1 text-xs"
+            disabled={!canGoForward || loading}
+            onClick={() => setPage((prev) => Math.min(totalPages, prev + 1))}
+          >
+            Next
+          </button>
+        </div>
       </div>
       {error && (
         <div className="text-sm text-rose-500 dark:text-rose-300">

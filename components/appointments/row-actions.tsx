@@ -1,10 +1,12 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useContext, useEffect, useMemo, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
+import { AppointmentNotesButton } from "@/components/notes/appointment-notes";
+import { AppointmentsDataContext } from "@/components/appointments/data-context";
+import { startPerf, endPerf } from "@/lib/perf";
 
-type Option = { id: string; label: string };
 type AppointmentForEdit = {
   patientId: string;
   doctorId: string | null;
@@ -19,11 +21,14 @@ type Props = {
   id: string;
   status?: string | null;
   appointment: AppointmentForEdit;
-  patients: Option[];
-  doctors: Option[];
   viewerRole: string | null;
   viewerStaffId: string | null;
+  patientName?: string | null;
+  patientMrn?: string | null;
+  doctorName?: string | null;
 };
+
+const isDev = process.env.NODE_ENV !== "production";
 
 const STATUS_OPTIONS = [
   { value: "scheduled", label: "Scheduled" },
@@ -82,16 +87,36 @@ export default function RowActions({
   id,
   status,
   appointment,
-  patients,
-  doctors,
   viewerRole,
   viewerStaffId,
+  patientName,
+  patientMrn,
+  doctorName,
 }: Props) {
+  const context = useContext(AppointmentsDataContext);
+  if (!context) {
+    throw new Error("RowActions must be rendered within AppointmentsDataProvider");
+  }
+  const { patients, doctors } = context;
   const router = useRouter();
   const isCancelled = status === "cancelled";
   const [editOpen, setEditOpen] = useState(false);
   const [saving, setSaving] = useState(false);
   const [form, setForm] = useState<FormState>(() => buildInitialForm(appointment));
+  const [, startTransition] = useTransition();
+
+  useEffect(() => {
+    if (!isDev) return;
+    console.log("[perf] RowActions mounted", { appointmentId: id });
+    return () => {
+      console.log("[perf] RowActions unmounted", { appointmentId: id });
+    };
+  }, [id]);
+
+  useEffect(() => {
+    if (!isDev) return;
+    console.log("[perf] RowActions state", { appointmentId: id, editOpen, saving });
+  }, [editOpen, id, saving]);
 
   const canEdit = useMemo(() => {
     if (!viewerRole) return false;
@@ -118,7 +143,7 @@ export default function RowActions({
       return;
     }
     toast.success("Appointment cancelled");
-    router.refresh();
+    startTransition(() => router.refresh());
   }
 
   async function remove() {
@@ -129,7 +154,7 @@ export default function RowActions({
       return;
     }
     toast.success("Appointment deleted");
-    router.refresh();
+    startTransition(() => router.refresh());
   }
 
   async function handleSave() {
@@ -177,36 +202,50 @@ export default function RowActions({
     }
 
     setSaving(true);
-    const res = await fetch(`/api/appointments/${id}`, {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      cache: "no-store",
-      body: JSON.stringify({
-        patient_id: form.patientId,
-        doctor_id: form.doctorId,
-        starts_at: startsAt.toISOString(),
-        ends_at: endsAt.toISOString(),
-        duration: durationMin,
-        reason,
-        status: form.status,
-      }),
-    });
-    setSaving(false);
+    const timer = startPerf(`[perf] appointments:update ${id}`);
+    try {
+      const res = await fetch(`/api/appointments/${id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        cache: "no-store",
+        body: JSON.stringify({
+          patient_id: form.patientId,
+          doctor_id: form.doctorId,
+          starts_at: startsAt.toISOString(),
+          ends_at: endsAt.toISOString(),
+          duration: durationMin,
+          reason,
+          status: form.status,
+        }),
+      });
 
-    if (!res.ok) {
-      const payload = await res.json().catch(() => ({}));
-      toast.error(payload?.error ?? "Failed to update appointment");
-      return;
+      if (!res.ok) {
+        const payload = await res.json().catch(() => ({}));
+        toast.error(payload?.error ?? "Failed to update appointment");
+        return;
+      }
+
+      toast.success("Appointment updated");
+      setEditOpen(false);
+      startTransition(() => router.refresh());
+    } finally {
+      endPerf(timer);
+      setSaving(false);
     }
-
-    toast.success("Appointment updated");
-    setEditOpen(false);
-    router.refresh();
   }
 
   return (
     <>
-      <div className="flex items-center gap-2">
+      <div className="flex flex-wrap items-center gap-2">
+        <AppointmentNotesButton
+          appointmentId={id}
+          patientId={appointment.patientId}
+          patientName={patientName}
+          patientMrn={patientMrn}
+          doctorName={doctorName}
+          startsAt={appointment.startsAt}
+          endsAt={appointment.endsAt}
+        />
         {canEdit && (
           <button
             onClick={() => {
@@ -234,7 +273,7 @@ export default function RowActions({
 
       {editOpen && (
         <div className="modal-overlay fixed inset-0 z-50 grid place-items-center p-4 backdrop-blur">
-          <div className="modal-card w-full max-w-xl space-y-4 p-5">
+          <div className="modal-card w-full max-w-xl max-h-[90vh] space-y-4 overflow-y-auto p-5 sm:p-6">
             <div className="flex items-center justify-between">
               <h2 className="text-lg font-semibold text-slate-900 dark:text-white">Edit appointment</h2>
               <button className="btn-ghost text-xs" onClick={() => setEditOpen(false)}>

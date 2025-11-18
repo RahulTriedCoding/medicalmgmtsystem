@@ -1,49 +1,85 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { toast } from "sonner";
-import { useRouter } from "next/navigation";
+import {
+  BLOOD_GROUP_OPTIONS,
+  GENDER_OPTIONS,
+  MARITAL_STATUS_OPTIONS,
+} from "@/lib/patients/constants";
+import type { Patient } from "@/lib/patients/types";
+import { collectPatientFormValues } from "@/components/patients/form-values";
+import { emitPatientCreated } from "@/lib/patients/events";
+import { startPerf, endPerf } from "@/lib/perf";
+
+const isDev = process.env.NODE_ENV !== "production";
 
 export default function NewPatientButton() {
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
-  const router = useRouter();
+
+  useEffect(() => {
+    if (isDev) console.log("[perf] NewPatientButton mounted");
+  }, []);
 
   async function onSubmit(formData: FormData) {
     setLoading(true);
+    const timer = startPerf("[perf] patients:newPatientSubmit");
+    const snapshot = collectPatientFormValues(formData);
     const body = {
-      mrn: formData.get("mrn")?.toString() || "",
-      full_name: formData.get("full_name")?.toString() || "",
-      phone: formData.get("phone")?.toString() || undefined,
-      dob: formData.get("dob")?.toString() || undefined,
-      gender: formData.get("gender")?.toString() || undefined,
-      address: formData.get("address")?.toString() || undefined,
-      allergies: formData.get("allergies")?.toString() || undefined,
+      mrn: snapshot.mrn,
+      full_name: snapshot.full_name,
+      phone: snapshot.phone ?? undefined,
+      dob: snapshot.dob ?? undefined,
+      gender: snapshot.gender ?? undefined,
+      address: snapshot.address ?? undefined,
+      allergies: snapshot.allergies ?? undefined,
+      blood_group: snapshot.blood_group ?? undefined,
+      marital_status: snapshot.marital_status ?? undefined,
+      location: snapshot.location ?? undefined,
+      state: snapshot.state ?? undefined,
+      country: snapshot.country ?? undefined,
+      district: snapshot.district ?? undefined,
+      relative_name: snapshot.relative_name ?? undefined,
+      relative_phone: snapshot.relative_phone ?? undefined,
+      occupation: snapshot.occupation ?? undefined,
     };
 
-    const res = await fetch("/api/patients", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(body),
-    });
+    try {
+      const res = await fetch("/api/patients", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(body),
+      });
 
-    setLoading(false);
+      const payload = await res.json().catch(() => ({}));
 
-    if (!res.ok) {
-      const j = await res.json().catch(() => ({}));
-      toast.error(j.error ?? "Failed to add patient");
-      return;
+      if (!res.ok) {
+        toast.error(payload.error ?? "Failed to add patient");
+        return;
+      }
+
+      const createdId = payload?.patient?.id;
+      if (typeof createdId === "string") {
+        const createdPatient: Patient = { id: createdId, ...snapshot };
+        emitPatientCreated(createdPatient);
+      }
+
+      toast.success("Patient added");
+      setOpen(false);
+    } finally {
+      endPerf(timer);
+      setLoading(false);
     }
-
-    toast.success("Patient added");
-    setOpen(false);
-    router.refresh(); // reload server component data
   }
 
   return (
     <>
       <button
-        onClick={() => setOpen(true)}
+        onClick={() => {
+          if (isDev) console.log("[perf] open new patient modal");
+          setOpen(true);
+        }}
         className="btn-primary text-sm"
       >
         New patient
@@ -63,7 +99,7 @@ export default function NewPatientButton() {
             </div>
 
             <form
-              className="mt-4 grid grid-cols-1 gap-3"
+              className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-2"
               onSubmit={(e) => {
                 e.preventDefault();
                 onSubmit(new FormData(e.currentTarget));
@@ -81,7 +117,7 @@ export default function NewPatientButton() {
 
               <div className="grid gap-1">
                 <label className="text-sm text-muted-foreground">Phone</label>
-                <input name="phone" className="field" />
+                <input name="phone" className="field" inputMode="tel" />
               </div>
 
               <div className="grid gap-1">
@@ -93,23 +129,84 @@ export default function NewPatientButton() {
                 <label className="text-sm text-muted-foreground">Gender</label>
                 <select name="gender" className="field">
                   <option value="">—</option>
-                  <option value="male">Male</option>
-                  <option value="female">Female</option>
-                  <option value="other">Other</option>
+                  {GENDER_OPTIONS.map((option) => (
+                    <option key={option} value={option}>
+                      {option.replace(/_/g, " ")}
+                    </option>
+                  ))}
                 </select>
               </div>
 
               <div className="grid gap-1">
-                <label className="text-sm text-muted-foreground">Address</label>
-                <input name="address" className="field" />
+                <label className="text-sm text-muted-foreground">Blood group</label>
+                <select name="blood_group" className="field">
+                  <option value="">—</option>
+                  {BLOOD_GROUP_OPTIONS.map((group) => (
+                    <option key={group} value={group}>
+                      {group}
+                    </option>
+                  ))}
+                </select>
               </div>
 
               <div className="grid gap-1">
-                <label className="text-sm text-muted-foreground">Allergies</label>
-                <input name="allergies" className="field" />
+                <label className="text-sm text-muted-foreground">Marital status</label>
+                <select name="marital_status" className="field">
+                  <option value="">—</option>
+                  {MARITAL_STATUS_OPTIONS.map((status) => (
+                    <option key={status} value={status}>
+                      {status.replace(/_/g, " ")}
+                    </option>
+                  ))}
+                </select>
               </div>
 
-              <div className="form-actions">
+              <div className="grid gap-1">
+                <label className="text-sm text-muted-foreground">Occupation</label>
+                <input name="occupation" className="field" />
+              </div>
+
+              <div className="grid gap-1 sm:col-span-2">
+                <label className="text-sm text-muted-foreground">Address</label>
+                <textarea name="address" className="field min-h-[90px]" />
+              </div>
+
+              <div className="grid gap-1">
+                <label className="text-sm text-muted-foreground">Location</label>
+                <input name="location" className="field" />
+              </div>
+
+              <div className="grid gap-1">
+                <label className="text-sm text-muted-foreground">District</label>
+                <input name="district" className="field" />
+              </div>
+
+              <div className="grid gap-1">
+                <label className="text-sm text-muted-foreground">State</label>
+                <input name="state" className="field" />
+              </div>
+
+              <div className="grid gap-1">
+                <label className="text-sm text-muted-foreground">Country</label>
+                <input name="country" className="field" />
+              </div>
+
+              <div className="grid gap-1">
+                <label className="text-sm text-muted-foreground">Relative name</label>
+                <input name="relative_name" className="field" />
+              </div>
+
+              <div className="grid gap-1">
+                <label className="text-sm text-muted-foreground">Relative phone</label>
+                <input name="relative_phone" className="field" inputMode="tel" />
+              </div>
+
+              <div className="grid gap-1 sm:col-span-2">
+                <label className="text-sm text-muted-foreground">Allergies</label>
+                <textarea name="allergies" className="field min-h-[80px]" />
+              </div>
+
+              <div className="form-actions sm:col-span-2">
                 <button
                   disabled={loading}
                   className="btn-primary disabled:opacity-60"

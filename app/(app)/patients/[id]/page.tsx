@@ -22,7 +22,9 @@ export default async function PatientDetailPage({ params }: PageProps) {
   const supabase = await createSupabaseServerClient();
   const { data: patient, error } = await supabase
     .from("patients")
-    .select("id, mrn, full_name, phone, dob, gender, address, allergies")
+    .select(
+      "id, mrn, full_name, phone, dob, gender, address, allergies, blood_group, marital_status, location, state, country, district, relative_name, relative_phone, occupation"
+    )
     .eq("id", patientId)
     .maybeSingle();
 

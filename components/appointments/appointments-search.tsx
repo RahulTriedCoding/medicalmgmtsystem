@@ -8,6 +8,8 @@ type AppointmentsSearchProps = {
   initialValue?: string;
 };
 
+const isDev = process.env.NODE_ENV !== "production";
+
 export function AppointmentsSearch({ initialValue = "" }: AppointmentsSearchProps) {
   const [value, setValue] = useState(initialValue);
   const router = useRouter();
@@ -16,17 +18,27 @@ export function AppointmentsSearch({ initialValue = "" }: AppointmentsSearchProp
   const searchParamsString = searchParams?.toString() ?? "";
 
   useEffect(() => {
+    if (isDev) console.log("[perf] AppointmentsSearch mounted");
+  }, []);
+
+  useEffect(() => {
     setValue(initialValue);
   }, [initialValue]);
 
   useEffect(() => {
+    if (isDev) console.log("[perf] AppointmentsSearch value", value);
+  }, [value]);
+
+  useEffect(() => {
     const handler = setTimeout(() => {
       const params = new URLSearchParams(searchParamsString);
-      if (value.trim()) {
-        params.set("search", value.trim());
+      const trimmed = value.trim();
+      if (trimmed) {
+        params.set("search", trimmed);
       } else {
         params.delete("search");
       }
+      params.delete("page");
       const query = params.toString();
       router.replace(query ? `${pathname}?${query}` : pathname);
     }, 300);

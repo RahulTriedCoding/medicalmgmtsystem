@@ -2,20 +2,20 @@
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import NewPatientButton from "@/components/patients/new-patient";
 import { PatientsSearchPanel } from "@/components/patients/patient-search-panel";
-import { searchPatients } from "@/lib/patients/store";
-import type { Patient } from "@/lib/patients/types";
+import { searchPatients, type SearchPatientsResult } from "@/lib/patients/store";
+import { startPerf, endPerf } from "@/lib/perf";
 
 export default async function PatientsPage() {
   const supabase = await createSupabaseServerClient();
-  let patients: Patient[] = [];
+  let initialResult: SearchPatientsResult = { patients: [], total: 0, page: 1, pageSize: 25 };
   let error: string | null = null;
-
+  const pageTimer = startPerf("[perf] patients:pageLoad");
   try {
-    patients = await searchPatients("", supabase);
+    initialResult = await searchPatients("", supabase);
   } catch (err) {
-    error =
-      err instanceof Error ? err.message : "Failed to load patients. Try again.";
+    error = err instanceof Error ? err.message : "Failed to load patients. Try again.";
   }
+  endPerf(pageTimer);
 
   return (
     <div className="space-y-4">
@@ -32,7 +32,14 @@ export default async function PatientsPage() {
       {error ? (
         <div className="text-sm text-red-400">{error}</div>
       ) : (
-        <PatientsSearchPanel initialPatients={patients} />
+        <PatientsSearchPanel
+          initialPatients={initialResult.patients}
+          initialMeta={{
+            total: initialResult.total,
+            page: initialResult.page,
+            pageSize: initialResult.pageSize,
+          }}
+        />
       )}
     </div>
   );

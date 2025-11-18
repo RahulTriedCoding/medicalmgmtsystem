@@ -1,7 +1,15 @@
-import type { SupabaseClient } from "@supabase/supabase-js";
-import { getInvoices, BillingStatus } from "@/lib/billing/store";
-import { getInventoryItems, InventoryItem } from "@/lib/inventory/store";
+import type { PostgrestError, SupabaseClient } from "@supabase/supabase-js";
+import type { BillingStatus } from "@/lib/billing/store";
 import type { StaffRole } from "@/lib/staff/types";
+import { startPerf, endPerf } from "@/lib/perf";
+
+function startTimer(label: string) {
+  return startPerf(label);
+}
+
+function endTimer(timer?: string | null) {
+  endPerf(timer);
+}
 
 type AppointmentPerson = { full_name: string | null; mrn?: string | null };
 
@@ -72,20 +80,76 @@ function pickFirst<T>(value: T | T[] | null | undefined): T | null {
   return value ?? null;
 }
 
-function lowStock(items: InventoryItem[]): InventoryItem[] {
-  return items.filter((item) => {
-    if (typeof item.lowStockThreshold !== "number") return false;
-    return item.quantity <= item.lowStockThreshold;
-  });
+function isTableMissing(error?: PostgrestError | null) {
+  if (!error) return false;
+  const message = error.message ?? "";
+  return error.code === "42P01" || /does not exist/i.test(message);
 }
 
-function withMissingTableFallback<T>(promise: Promise<T>, fallback: T, pattern: RegExp) {
-  return promise.catch((error) => {
-    if (error instanceof Error && pattern.test(error.message)) {
-      return fallback;
+type MinimalInvoiceRow = {
+  id: string;
+  invoice_number: string;
+  patient_id: string;
+  due_date: string;
+  status: BillingStatus;
+  balance: number;
+};
+
+async function fetchOutstandingInvoices(
+  supabase: SupabaseClient
+): Promise<MinimalInvoiceRow[]> {
+  const timer = startTimer("[perf] dashboard:fetchOutstandingInvoices");
+  const { data, error } = await supabase
+    .from("billing_invoices")
+    .select("id, invoice_number, patient_id, due_date, status, balance")
+    .gt("balance", 0);
+  endTimer(timer);
+
+  if (error) {
+    if (isTableMissing(error)) {
+      return [];
     }
-    throw error;
-  });
+    throw new Error(error.message);
+  }
+
+  return (data ?? []) as MinimalInvoiceRow[];
+}
+
+type InventoryRow = {
+  id: string;
+  name: string;
+  quantity: number;
+  low_stock_threshold: number | null;
+};
+
+type LowStockResult = {
+  items: InventoryRow[];
+  count: number;
+};
+
+async function fetchLowStockInventory(
+  supabase: SupabaseClient
+): Promise<LowStockResult> {
+  const label = "[perf] dashboard:fetchLowStockInventory";
+  const timer = startTimer(label);
+  const { data, error } = await supabase
+    .from("inventory_items")
+    .select("id, name, quantity, low_stock_threshold")
+    .order("quantity", { ascending: true });
+  endTimer(timer);
+
+  if (error) {
+    if (isTableMissing(error)) {
+      return { items: [], count: 0 };
+    }
+    throw new Error(error.message);
+  }
+
+  const rows = Array.isArray(data) ? ((data as unknown[]) as InventoryRow[]) : [];
+  const lowStock = rows.filter(
+    (row) => typeof row.low_stock_threshold === "number" && row.quantity <= row.low_stock_threshold
+  );
+  return { items: lowStock, count: lowStock.length };
 }
 
 const DOCTOR_ROLE: StaffRole = "doctor";
@@ -97,20 +161,15 @@ export async function fetchDashboardData(supabase: SupabaseClient): Promise<Dash
   todayEnd.setDate(todayStart.getDate() + 1);
   const now = new Date();
 
-  const invoicesPromise = withMissingTableFallback(getInvoices(supabase), [], /billing tables/i);
-  const inventoryPromise = withMissingTableFallback(
-    getInventoryItems(supabase),
-    [],
-    /inventory tables/i
-  );
-
+  const parallelLabel = "[perf] dashboard:parallelQueries";
+  const parallelTimer = startTimer(parallelLabel);
   const [
     patientsQuery,
     doctorsQuery,
     todaysAppointmentsQuery,
     upcomingAppointmentsQuery,
     invoices,
-    inventoryItems,
+    inventoryResult,
   ] = await Promise.all([
     supabase.from("patients").select("id", { count: "exact", head: true }),
     supabase.from("users").select("id", { count: "exact", head: true }).eq("role", DOCTOR_ROLE),
@@ -130,9 +189,10 @@ export async function fetchDashboardData(supabase: SupabaseClient): Promise<Dash
       .neq("status", "cancelled")
       .order("starts_at", { ascending: true })
       .limit(5),
-    invoicesPromise,
-    inventoryPromise,
+    fetchOutstandingInvoices(supabase),
+    fetchLowStockInventory(supabase),
   ]);
+  endTimer(parallelTimer);
 
   const totalPatients = patientsQuery.count ?? 0;
   const totalDoctors = doctorsQuery.count ?? 0;
@@ -142,6 +202,8 @@ export async function fetchDashboardData(supabase: SupabaseClient): Promise<Dash
     : [];
   const upcomingAppointmentsRaw = rawAppointments.filter(isAppointmentRow);
 
+  const appointmentMapLabel = "[perf] dashboard:transformUpcomingAppointments";
+  const appointmentTimer = startTimer(appointmentMapLabel);
   const upcomingAppointments: DashboardAppointment[] = upcomingAppointmentsRaw.map((row) => {
     const patient = pickFirst(row.patients);
     const doctor = pickFirst(row.doctors);
@@ -156,22 +218,31 @@ export async function fetchDashboardData(supabase: SupabaseClient): Promise<Dash
       doctor_name: doctor?.full_name ?? "Doctor",
     };
   });
+  endTimer(appointmentTimer);
 
+  const invoiceTotalsLabel = "[perf] dashboard:aggregateInvoices";
+  const invoiceTotalsTimer = startTimer(invoiceTotalsLabel);
   const outstandingBalance = invoices.reduce((sum, invoice) => sum + invoice.balance, 0);
   const overdueBalance = invoices
     .filter((invoice) => invoice.status === "overdue")
     .reduce((sum, invoice) => sum + invoice.balance, 0);
+  endTimer(invoiceTotalsTimer);
 
   const invoicePatientIds = Array.from(new Set(invoices.map((invoice) => invoice.patient_id)));
   let invoicePatientMap = new Map<string, { full_name: string | null }>();
   if (invoicePatientIds.length) {
+    const invoicePatientLabel = "[perf] dashboard:fetchInvoicePatients";
+    const invoicePatientTimer = startTimer(invoicePatientLabel);
     const { data } = await supabase
       .from("patients")
       .select("id, full_name")
       .in("id", invoicePatientIds);
+    endTimer(invoicePatientTimer);
     invoicePatientMap = new Map((data ?? []).map((patient) => [patient.id, patient]));
   }
 
+  const topInvoiceLabel = "[perf] dashboard:prepareTopInvoices";
+  const topInvoicesTimer = startTimer(topInvoiceLabel);
   const topInvoices: DashboardInvoice[] = invoices
     .filter((invoice) => invoice.balance > 0)
     .sort((a, b) => b.balance - a.balance)
@@ -184,16 +255,19 @@ export async function fetchDashboardData(supabase: SupabaseClient): Promise<Dash
       due_date: invoice.due_date,
       status: invoice.status,
     }));
+  endTimer(topInvoicesTimer);
 
-  const lowStockItemsRaw = lowStock(inventoryItems);
-  const lowStockItemsSorted = [...lowStockItemsRaw].sort((a, b) => a.quantity - b.quantity);
-  const lowStockCount = lowStockItemsRaw.length;
+  const lowStockLabel = "[perf] dashboard:prepareLowStock";
+  const lowStockTimer = startTimer(lowStockLabel);
+  const lowStockItemsSorted = [...inventoryResult.items].sort((a, b) => a.quantity - b.quantity);
+  const lowStockCount = inventoryResult.count;
   const lowStockItems: DashboardInventoryAlert[] = lowStockItemsSorted.slice(0, 5).map((item) => ({
     id: item.id,
     name: item.name,
     quantity: item.quantity,
-    lowStockThreshold: item.lowStockThreshold,
+    lowStockThreshold: item.low_stock_threshold ?? undefined,
   }));
+  endTimer(lowStockTimer);
 
   return {
     totalPatients,

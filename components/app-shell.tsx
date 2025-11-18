@@ -45,9 +45,11 @@ export default function AppShell({ children, clinicName }: AppShellProps) {
                   href={href}
                   className={cn(
                     "group flex items-center gap-3 rounded-2xl px-3 py-2 text-sm font-medium transition",
-                    "text-slate-600 hover:bg-slate-100 dark:text-white/70 dark:hover:bg-white/5",
-                    active &&
-                      "bg-[var(--sidebar-primary)] text-[var(--sidebar-primary-foreground)] shadow-[0_12px_30px_rgba(34,196,184,0.2)]"
+                    "focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary/40",
+                    "text-slate-700 hover:text-slate-900 hover:bg-slate-100 dark:text-slate-200 dark:hover:text-white dark:hover:bg-white/10",
+                    active
+                      ? "bg-sky-100 text-slate-900 ring-1 ring-sky-200 shadow-[0_12px_30px_rgba(34,196,184,0.18)] dark:bg-white/10 dark:text-white dark:ring-white/15"
+                      : "bg-transparent"
                   )}
                 >
                   <Icon className="h-4 w-4 text-inherit" />
@@ -55,7 +57,9 @@ export default function AppShell({ children, clinicName }: AppShellProps) {
                   <span
                     className={cn(
                       "ml-auto h-1.5 w-1.5 rounded-full bg-transparent transition",
-                      active && "bg-white"
+                      active
+                        ? "bg-sky-500 dark:bg-white"
+                        : "bg-slate-300 dark:bg-white/20 group-hover:bg-slate-400 dark:group-hover:bg-white/40"
                     )}
                   />
                 </Link>

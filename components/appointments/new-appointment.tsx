@@ -1,10 +1,13 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState, useTransition } from "react";
 import { toast } from "sonner";
 import { useRouter } from "next/navigation";
+import { startPerf, endPerf } from "@/lib/perf";
 
 type Option = { id: string; label: string };
+
+const isDev = process.env.NODE_ENV !== "production";
 
 export default function NewAppointmentButton(props: {
   patients: Option[];
@@ -15,6 +18,11 @@ export default function NewAppointmentButton(props: {
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
   const router = useRouter();
+  const [, startTransition] = useTransition();
+
+  useEffect(() => {
+    if (isDev) console.log("[perf] NewAppointmentButton mounted");
+  }, []);
 
   async function onSubmit(form: FormData) {
     setLoading(true);
@@ -73,35 +81,45 @@ export default function NewAppointmentButton(props: {
       return;
     }
 
-    const res = await fetch("/api/appointments", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        patient_id,
-        doctor_id,
-        starts_at: starts_at.toISOString(),
-        ends_at: ends_at.toISOString(),
-        duration: durationMin,
-        reason,
-      }),
-    });
+    const timer = startPerf("[perf] appointments:create");
+    try {
+      const res = await fetch("/api/appointments", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          patient_id,
+          doctor_id,
+          starts_at: starts_at.toISOString(),
+          ends_at: ends_at.toISOString(),
+          duration: durationMin,
+          reason,
+        }),
+      });
 
-    setLoading(false);
+      if (!res.ok) {
+        const j = await res.json().catch(() => ({}));
+        toast.error(j.error ?? "Failed to create appointment");
+        return;
+      }
 
-    if (!res.ok) {
-      const j = await res.json().catch(() => ({}));
-      toast.error(j.error ?? "Failed to create appointment");
-      return;
+      toast.success("Appointment created");
+      setOpen(false);
+      startTransition(() => router.refresh());
+    } finally {
+      endPerf(timer);
+      setLoading(false);
     }
-
-    toast.success("Appointment created");
-    setOpen(false);
-    router.refresh();
   }
 
   return (
     <>
-      <button className="btn-primary text-sm" onClick={() => setOpen(true)}>
+      <button
+        className="btn-primary text-sm"
+        onClick={() => {
+          if (isDev) console.log("[perf] open new appointment modal");
+          setOpen(true);
+        }}
+      >
         New appointment
       </button>
 

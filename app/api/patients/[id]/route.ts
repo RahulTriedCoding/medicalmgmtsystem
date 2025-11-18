@@ -20,7 +20,23 @@ export async function PATCH(request: Request, { params }: { params: ParamsShape 
     return NextResponse.json({ error: "Invalid JSON body" }, { status: 400 });
   }
 
-  const allowed = ["full_name", "phone", "dob", "gender", "address", "allergies"] as const;
+  const allowed = [
+    "full_name",
+    "phone",
+    "dob",
+    "gender",
+    "address",
+    "allergies",
+    "blood_group",
+    "marital_status",
+    "location",
+    "state",
+    "country",
+    "district",
+    "relative_name",
+    "relative_phone",
+    "occupation",
+  ] as const;
   const updates: Record<string, unknown> = {};
 
   if (parsed && typeof parsed === "object") {

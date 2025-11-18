@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { toast } from "sonner";
 import type { AppSettings } from "@/lib/settings/store";
+import { AVAILABLE_CURRENCIES } from "@/lib/currency";
 
 type Props = {
   initial: AppSettings;
@@ -102,13 +103,18 @@ export function SettingsForm({ initial }: Props) {
         <div className="grid gap-3 md:grid-cols-3">
           <label className="text-sm text-muted-foreground">
             Currency
-            <input
+            <select
               name="currency"
               defaultValue={values.currency}
-              className="field mt-1 uppercase"
+              className="field mt-1"
               required
-              maxLength={5}
-            />
+            >
+              {AVAILABLE_CURRENCIES.map((currency) => (
+                <option key={currency.value} value={currency.value}>
+                  {currency.label}
+                </option>
+              ))}
+            </select>
           </label>
           <label className="text-sm text-muted-foreground">
             Timezone
