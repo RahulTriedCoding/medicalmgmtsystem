@@ -1,4 +1,5 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
+import { normalizeStaffRole } from "@/lib/staff/types";
 
 export type StaffContext = {
   authUserId: string | null;
@@ -52,6 +53,7 @@ export async function getCurrentStaffContext(
   }
 
   if (!user) {
+    console.info("[auth] no authenticated user for staff context");
     return { authUserId: null, staffId: null, role: null, email: null };
   }
 
@@ -71,23 +73,38 @@ export async function getCurrentStaffContext(
     record = await linkStaffRecord(client, user.email, user.id);
   }
 
-  const metadataRole =
-    typeof user.user_metadata?.role === "string"
-      ? String(user.user_metadata.role).toLowerCase()
-      : null;
+  const metadataRole = normalizeStaffRole(
+    typeof user.user_metadata?.role === "string" ? user.user_metadata.role : null
+  );
+  const recordRole = normalizeStaffRole(record?.role ?? null);
+  const resolvedRole = recordRole ?? metadataRole;
 
   if (!record) {
     if (metadataRole) {
-      console.warn("[auth] falling back to auth metadata role", { authUserId: user.id, role: metadataRole });
+      console.warn("[auth] staff record not found, using auth metadata role", {
+        authUserId: user.id,
+        email: user.email ?? null,
+        role: metadataRole,
+      });
     } else {
       console.warn("[auth] staff record not found", { authUserId: user.id, email: user.email ?? null });
     }
   }
 
+  console.info("[auth] staff context resolved", {
+    authUserId: user.id,
+    email: user.email ?? null,
+    staffId: record?.id ?? null,
+    staffRoleInDb: record?.role ?? null,
+    normalizedRecordRole: recordRole,
+    metadataRole,
+    role: resolvedRole ?? null,
+  });
+
   return {
     authUserId: user.id,
     staffId: record?.id ?? null,
-    role: record?.role ?? metadataRole,
+    role: resolvedRole ?? null,
     email: user.email ?? null,
   };
 }

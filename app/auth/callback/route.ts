@@ -5,8 +5,10 @@ import { cookies } from "next/headers";
 export async function GET(request: Request) {
   const { searchParams, origin } = new URL(request.url);
   const code = searchParams.get("code");
-  const next = searchParams.get("next") ?? "/dashboard";
+  const nextParam = searchParams.get("next");
+  const next = nextParam && nextParam.startsWith("/") ? nextParam : "/dashboard";
   const cookieStore = await cookies();
+  console.info("[auth/callback] invoked", { hasCode: Boolean(code), next });
 
   if (code) {
     const supabase = createServerClient(
@@ -28,7 +30,21 @@ export async function GET(request: Request) {
     );
 
     // Exchange the one-time code for a session and set cookies
-    await supabase.auth.exchangeCodeForSession(code);
+    const { data, error } = await supabase.auth.exchangeCodeForSession(code);
+    const sessionUser = data?.session?.user ?? null;
+
+    if (error) {
+      console.error("[auth/callback] exchangeCodeForSession failed", { error: error.message, next });
+      return NextResponse.redirect(`${origin}/login`);
+    }
+
+    console.info("[auth/callback] session established", {
+      userId: sessionUser?.id ?? null,
+      email: sessionUser?.email ?? null,
+      next,
+    });
+  } else {
+    console.warn("[auth/callback] missing code in callback", { redirectingTo: next });
   }
 
   return NextResponse.redirect(`${origin}${next}`);

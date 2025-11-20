@@ -246,36 +246,39 @@ export function PatientsSearchPanel({ initialPatients, initialMeta }: Props) {
             No patients found. Try searching by full name, MRN, or phone number.
           </div>
         ) : (
-          <table className="w-full text-sm">
-            <thead className="bg-muted">
-              <tr>
-                <th className="p-2 text-left">MRN</th>
-                <th className="p-2 text-left">Name</th>
-                <th className="p-2 text-left">Phone</th>
-                <th className="p-2 text-left">DOB</th>
-                <th className="p-2 text-left">Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              {patients.map((patient) => (
-                <tr key={patient.id} className="border-t">
-                  <td className="p-2">{patient.mrn}</td>
-                  <td className="p-2">{patient.full_name}</td>
-                  <td className="p-2">{patient.phone ?? "-"}</td>
-                  <td className="p-2">{fmtDate(patient.dob)}</td>
-                  <td className="p-2">
-                    <div className="flex flex-wrap gap-2">
-                      <EditPatientButton patient={patient} />
-                      <PatientNotesButton
-                        patientId={patient.id}
-                        patientName={patient.full_name}
-                      />
-                    </div>
-                  </td>
+          <div className="w-full overflow-x-auto">
+            <table className="w-full min-w-[720px] text-sm">
+              <thead className="bg-muted">
+                <tr>
+                  <th className="p-2 text-left whitespace-nowrap">MRN</th>
+                  <th className="p-2 text-left">Name</th>
+                  <th className="p-2 text-left whitespace-nowrap">Phone</th>
+                  <th className="p-2 text-left whitespace-nowrap">DOB</th>
+                  <th className="p-2 text-left whitespace-nowrap">Actions</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody>
+                {patients.map((patient) => (
+                  <tr key={patient.id} className="border-t">
+                    <td className="p-2 whitespace-nowrap">{patient.mrn}</td>
+                    <td className="p-2">{patient.full_name}</td>
+                    <td className="p-2 whitespace-nowrap">{patient.phone ?? "-"}</td>
+                    <td className="p-2 whitespace-nowrap">{fmtDate(patient.dob)}</td>
+                    <td className="p-2">
+                      <div className="flex flex-wrap gap-2 justify-start sm:justify-end">
+                        <EditPatientButton patient={patient} />
+                        <PatientNotesButton
+                          patientId={patient.id}
+                          patientName={patient.full_name}
+                          className="w-full sm:w-auto"
+                        />
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         )}
       </div>
     </div>
