@@ -44,7 +44,9 @@ export async function getClinicDoctors(client?: ServerClient): Promise<StaffMemb
   const supabase = await ensureClient(client);
   const { data, error } = await supabase
     .from("users")
-    .select("id, full_name, role")
+    .select("id, full_name, role, is_active, deactivated_at")
+    .eq("is_active", true)
+    .is("deactivated_at", null)
     .order("full_name", { ascending: true });
 
   if (error) {

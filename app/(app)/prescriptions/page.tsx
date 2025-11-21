@@ -45,6 +45,8 @@ export default async function PrescriptionsPage() {
       .from("users")
       .select("id, full_name, role")
       .eq("role", "doctor")
+      .eq("is_active", true)
+      .is("deactivated_at", null)
       .order("full_name")
       .limit(200),
   ]);

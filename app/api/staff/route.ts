@@ -1,11 +1,10 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
-import { randomUUID } from "crypto";
 import type { User } from "@supabase/supabase-js";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { STAFF_ROLES } from "@/lib/staff/types";
 import { getStaffContacts, upsertStaffContact } from "@/lib/staff/store";
-import { createSupabaseAdminClient, createSupabaseServerAnonClient } from "@/lib/supabase/admin";
+import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import { requireStaffRole } from "@/lib/staff/permissions";
 
 const RoleEnum = z.enum(STAFF_ROLES);
@@ -17,7 +16,11 @@ const CreateSchema = z.object({
   role: RoleEnum,
 });
 
-const STAFF_COLUMNS = "id, full_name, email, role, auth_user_id, created_at";
+const STAFF_COLUMNS = "id, full_name, email, role, auth_user_id, created_at, is_active, deactivated_at";
+
+const normalizeEmail = (email: string) => email.trim().toLowerCase();
+const inviteRedirectTo =
+  `${process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000"}`.replace(/\/$/, "") + "/auth/callback";
 
 async function findAuthUserByEmail(adminClient: ReturnType<typeof createSupabaseAdminClient>, email: string) {
   if (!adminClient) return null;
@@ -70,6 +73,53 @@ export async function GET() {
   return NextResponse.json({ ok: true, staff: enriched });
 }
 
+async function sendAuthLink(
+  adminClient: ReturnType<typeof createSupabaseAdminClient>,
+  email: string,
+  full_name: string,
+  mode: "invite" | "magiclink" | "recovery"
+) {
+  if (!adminClient) {
+    throw new Error("Supabase admin client unavailable");
+  }
+
+  if (mode === "recovery") {
+    const recovery = await adminClient.auth.admin.generateLink({
+      type: "recovery",
+      email,
+      options: { redirectTo: inviteRedirectTo },
+    });
+    if (recovery.error) {
+      console.error("[staff:invite] failed to send recovery link", { email, error: recovery.error });
+      throw new Error(recovery.error.message);
+    }
+    return { sent: true, mode: "recovery" as const, user: recovery.data.user ?? null };
+  }
+
+  if (mode === "magiclink") {
+    const magic = await adminClient.auth.admin.generateLink({
+      type: "magiclink",
+      email,
+      options: { redirectTo: inviteRedirectTo },
+    });
+    if (magic.error) {
+      console.error("[staff:invite] failed to send magic link", { email, error: magic.error });
+      throw new Error(magic.error.message);
+    }
+    return { sent: true, mode: "magiclink" as const, user: magic.data.user ?? null };
+  }
+
+  const invite = await adminClient.auth.admin.inviteUserByEmail(email, {
+    redirectTo: inviteRedirectTo,
+    data: { full_name },
+  });
+  if (invite.error) {
+    console.error("[staff:invite] failed to send invite", { email, error: invite.error });
+    throw new Error(invite.error.message);
+  }
+  return { sent: true, mode: "invite" as const, user: invite.data.user ?? null };
+}
+
 export async function POST(req: Request) {
   const supabase = await createSupabaseServerClient();
   const guard = await requireStaffRole(supabase, ["admin"]);
@@ -87,118 +137,201 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: parsed.error.flatten() }, { status: 400 });
   }
 
-  const { data: existing } = await supabase
+  const fullName = parsed.data.full_name.trim();
+  const normalizedEmail = normalizeEmail(parsed.data.email);
+  const phone = parsed.data.phone ?? null;
+  const role = parsed.data.role;
+
+  console.log("[staff/invite] payload", { fullName, email: normalizedEmail, role, phone });
+
+  const { data: existing, error: lookupError } = await supabase
     .from("users")
-    .select("id")
-    .eq("email", parsed.data.email)
+    .select("id, is_active, auth_user_id, deactivated_at, email")
+    .ilike("email", normalizedEmail)
     .maybeSingle();
 
-  if (existing) {
-    return NextResponse.json({ error: "Email already exists" }, { status: 409 });
+  if (lookupError) {
+    console.error("[staff/invite] staff lookup error", { email: normalizedEmail, error: lookupError });
+    return NextResponse.json({ ok: false, code: "LOOKUP_FAILED", error: lookupError.message }, { status: 400 });
   }
 
-  const redirectTo =
-    process.env.NEXT_PUBLIC_SITE_URL ??
-    process.env.NEXTAUTH_URL ??
-    "http://localhost:3000";
-
-  const baseRedirect = `${redirectTo.replace(/\/$/, "")}/auth/callback`;
-
-  let authUserId: string | null = null;
-  let pendingInvite = true;
+  console.log("[staff/invite] existing staff row", existing ?? null);
 
   const supabaseAdmin = createSupabaseAdminClient();
+  if (!supabaseAdmin) {
+    return NextResponse.json(
+      { ok: false, code: "ADMIN_CLIENT_MISSING", error: "Supabase service role key missing" },
+      { status: 500 }
+    );
+  }
 
-  if (supabaseAdmin) {
-    const invite = await supabaseAdmin.auth.admin.inviteUserByEmail(parsed.data.email, {
-      data: { full_name: parsed.data.full_name },
-      redirectTo: baseRedirect,
-    });
+  let authUser = await findAuthUserByEmail(supabaseAdmin, normalizedEmail);
+  console.log("[staff/invite] existing auth user", authUser?.id ?? null);
 
-    if (invite.error) {
-      if (invite.error.message.toLowerCase().includes("already")) {
-        const existingUser = await findAuthUserByEmail(supabaseAdmin, parsed.data.email);
-        if (!existingUser) {
-          return NextResponse.json({ error: invite.error.message }, { status: 400 });
-        }
+  const pendingInvite = true;
+  let inviteMode: "invite" | "magiclink" | "recovery" | null = null;
+  let staffRecord;
 
-        authUserId = existingUser.id;
-        pendingInvite = true;
+  // Case 2: active staff
+  if (authUser && existing && existing.deactivated_at === null) {
+    return NextResponse.json(
+      { ok: false, code: "ALREADY_ACTIVE", error: "Staff member with this email is already active" },
+      { status: 409 }
+    );
+  }
 
-        const anonClient = createSupabaseServerAnonClient();
-        if (!anonClient) {
-          return NextResponse.json({ error: "Supabase credentials missing" }, { status: 500 });
-        }
+  // Case 3: auth + staff exists but revoked
+  if (authUser && existing && existing.deactivated_at !== null) {
+    try {
+      inviteMode = (await sendAuthLink(supabaseAdmin, normalizedEmail, fullName, "magiclink")).mode;
+    } catch (err) {
+      console.error("[staff/invite] error sending magiclink for reactivation", { email: normalizedEmail, error: err });
+      return NextResponse.json(
+        { ok: false, code: "INVITE_FAILED", error: err instanceof Error ? err.message : "Failed to send invite" },
+        { status: 400 }
+      );
+    }
+    const updateResult = await supabase
+      .from("users")
+      .update({
+        full_name: fullName,
+        email: normalizedEmail,
+        auth_user_id: authUser.id,
+        role,
+        is_active: true,
+        deactivated_at: null,
+      })
+      .eq("id", existing.id)
+      .select(STAFF_COLUMNS)
+      .single();
 
-        const magicLink = await anonClient.auth.signInWithOtp({
-          email: parsed.data.email,
-          options: { emailRedirectTo: baseRedirect },
-        });
+    if (updateResult.error) {
+      console.error("[staff/invite] failed to reactivate staff row", { email: normalizedEmail, error: updateResult.error });
+      return NextResponse.json({ ok: false, code: "STAFF_UPDATE_FAILED", error: updateResult.error.message }, { status: 400 });
+    }
+    staffRecord = updateResult.data;
+  }
 
-        if (magicLink.error) {
-          return NextResponse.json({ error: magicLink.error.message }, { status: 400 });
+  // Case 4: auth exists but no staff row
+  if (authUser && !staffRecord && !existing) {
+    try {
+      inviteMode = (await sendAuthLink(supabaseAdmin, normalizedEmail, fullName, "magiclink")).mode;
+    } catch (err) {
+      console.error("[staff/invite] error sending magiclink for existing auth user", { email: normalizedEmail, error: err });
+      return NextResponse.json(
+        { ok: false, code: "INVITE_FAILED", error: err instanceof Error ? err.message : "Failed to send invite" },
+        { status: 400 }
+      );
+    }
+    const insertResult = await supabase
+      .from("users")
+      .insert({
+        full_name: fullName,
+        email: normalizedEmail,
+        auth_user_id: authUser.id,
+        role,
+        is_active: true,
+        deactivated_at: null,
+      })
+      .select(STAFF_COLUMNS)
+      .single();
+
+      if (insertResult.error) {
+        if (insertResult.error.message.includes("users_auth_user_id_key")) {
+          const { data: existingUser } = await supabase
+            .from("users")
+            .select(STAFF_COLUMNS)
+            .eq("auth_user_id", authUser.id)
+            .maybeSingle();
+          if (existingUser) {
+            staffRecord = existingUser;
+          } else {
+            console.error("[staff/invite] auth_user_id conflict but no row found", { email: normalizedEmail, error: insertResult.error });
+            return NextResponse.json({ ok: false, code: "STAFF_INSERT_FAILED", error: insertResult.error.message }, { status: 400 });
+          }
+        } else {
+          console.error("[staff/invite] failed to create staff row for existing auth user", {
+            email: normalizedEmail,
+            error: insertResult.error,
+          });
+          return NextResponse.json({ ok: false, code: "STAFF_INSERT_FAILED", error: insertResult.error.message }, { status: 400 });
         }
       } else {
-        return NextResponse.json({ error: invite.error.message }, { status: 400 });
+        staffRecord = insertResult.data;
+      }
+    }
+
+  // Case 1: brand new email
+  if (!authUser) {
+    try {
+      const invite = await sendAuthLink(supabaseAdmin, normalizedEmail, fullName, "invite");
+      inviteMode = invite.mode;
+      authUser = invite.user ?? (await findAuthUserByEmail(supabaseAdmin, normalizedEmail));
+    } catch (err) {
+      console.error("[staff/invite] error creating/inviting new user", { email: normalizedEmail, error: err });
+      return NextResponse.json(
+        { ok: false, code: "INVITE_FAILED", error: err instanceof Error ? err.message : "Failed to invite staff" },
+        { status: 400 }
+      );
+    }
+    if (!authUser?.id) {
+      return NextResponse.json({ ok: false, code: "NO_AUTH_USER", error: "Failed to obtain invited user id" }, { status: 500 });
+    }
+
+    const insertResult = await supabase
+      .from("users")
+      .insert({
+        full_name: fullName,
+        email: normalizedEmail,
+        auth_user_id: authUser.id,
+        role,
+        is_active: true,
+        deactivated_at: null,
+      })
+      .select(STAFF_COLUMNS)
+      .single();
+
+    if (insertResult.error) {
+      if (insertResult.error.message.includes("users_auth_user_id_key")) {
+        const { data: existingUser } = await supabase
+          .from("users")
+          .select(STAFF_COLUMNS)
+          .eq("auth_user_id", authUser.id)
+          .maybeSingle();
+        if (existingUser) {
+          staffRecord = existingUser;
+        } else {
+          console.error("[staff/invite] auth_user_id conflict for new user", { email: normalizedEmail, error: insertResult.error });
+          return NextResponse.json({ ok: false, code: "STAFF_INSERT_FAILED", error: insertResult.error.message }, { status: 400 });
+        }
+      } else {
+        console.error("[staff/invite] failed to create staff row for new auth user", {
+          email: normalizedEmail,
+          error: insertResult.error,
+        });
+        return NextResponse.json({ ok: false, code: "STAFF_INSERT_FAILED", error: insertResult.error.message }, { status: 400 });
       }
     } else {
-      authUserId = invite.data.user?.id ?? null;
-      if (!authUserId) {
-        return NextResponse.json({ error: "Failed to obtain invited user id" }, { status: 500 });
-      }
-      pendingInvite = true;
-    }
-  } else {
-    const anonClient = createSupabaseServerAnonClient();
-    if (!anonClient) {
-      return NextResponse.json({ error: "Supabase credentials missing" }, { status: 500 });
-    }
-
-    const tempPassword = `Temp-${randomUUID().replace(/-/g, "").slice(0, 20)}`;
-
-    const signup = await anonClient.auth.signUp({
-      email: parsed.data.email,
-      password: tempPassword,
-      options: {
-        data: { full_name: parsed.data.full_name },
-        emailRedirectTo: baseRedirect,
-      },
-    });
-
-    if (signup.error) {
-      if (signup.error.message.includes("already registered")) {
-        return NextResponse.json({ error: "Email already registered" }, { status: 409 });
-      }
-      return NextResponse.json({ error: signup.error.message }, { status: 400 });
-    }
-
-    authUserId = signup.data.user?.id ?? null;
-    if (!authUserId) {
-      return NextResponse.json({ error: "Failed to complete invite" }, { status: 500 });
+      staffRecord = insertResult.data;
     }
   }
 
-  const { data, error } = await supabase
-    .from("users")
-    .insert({
-      full_name: parsed.data.full_name,
-      email: parsed.data.email,
-      auth_user_id: authUserId,
-      role: parsed.data.role,
-    })
-    .select(STAFF_COLUMNS)
-    .single();
-
-  if (error) {
-    return NextResponse.json({ error: error.message }, { status: 400 });
+  if (!staffRecord) {
+    console.error("[staff/invite] no staff record created or found", { email: normalizedEmail });
+    return NextResponse.json({ ok: false, code: "STAFF_UNKNOWN", error: "Staff record not created" }, { status: 400 });
   }
 
-  await upsertStaffContact(data.id, parsed.data.phone ?? null, pendingInvite, supabase);
+  await upsertStaffContact(staffRecord.id, phone, pendingInvite, supabase);
 
   return NextResponse.json(
     {
       ok: true,
-      staff: { ...data, phone: parsed.data.phone ?? null, pending: pendingInvite },
+      staff: { ...staffRecord, phone, pending: pendingInvite },
+      inviteMode: inviteMode ?? "magiclink",
+      message:
+        inviteMode === "recovery"
+          ? `Reactivated and sent a login link to ${normalizedEmail}`
+          : `Invitation sent to ${normalizedEmail}`,
     },
     { status: 201 }
   );

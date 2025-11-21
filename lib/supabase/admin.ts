@@ -1,7 +1,6 @@
 import { createClient } from "@supabase/supabase-js";
 
 let cachedAdminClient: ReturnType<typeof createClient> | null = null;
-let cachedAnonServerClient: ReturnType<typeof createClient> | null = null;
 
 export function createSupabaseAdminClient() {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
@@ -21,24 +20,4 @@ export function createSupabaseAdminClient() {
   }
 
   return cachedAdminClient;
-}
-
-export function createSupabaseServerAnonClient() {
-  const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
-  const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
-
-  if (!url || !anonKey) {
-    return null;
-  }
-
-  if (!cachedAnonServerClient) {
-    cachedAnonServerClient = createClient(url, anonKey, {
-      auth: {
-        autoRefreshToken: false,
-        persistSession: false,
-      },
-    });
-  }
-
-  return cachedAnonServerClient;
 }

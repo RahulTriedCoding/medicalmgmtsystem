@@ -1,43 +1,34 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
-import { normalizeStaffRole } from "@/lib/staff/types";
+import { normalizeStaffRole, type StaffRole } from "@/lib/staff/types";
+
+type StaffRecordRow = {
+  id: string;
+  role: string | null;
+  is_active: boolean | null;
+  deactivated_at: string | null;
+  email: string | null;
+};
 
 export type StaffContext = {
   authUserId: string | null;
   staffId: string | null;
-  role: string | null;
+  role: StaffRole | null;
   email: string | null;
+  isActive: boolean;
 };
 
-async function linkStaffRecord(
-  client: SupabaseClient,
-  email: string,
-  authUserId: string
-) {
+async function fetchStaffRecord(client: SupabaseClient, authUserId: string): Promise<StaffRecordRow | null> {
   const { data, error } = await client
     .from("users")
-    .select("id, role")
-    .eq("email", email)
+    .select("id, role, is_active, deactivated_at, email")
+    .eq("auth_user_id", authUserId)
     .maybeSingle();
 
   if (error) {
     throw error;
   }
 
-  if (!data) {
-    return null;
-  }
-
-  try {
-    await client
-    .from("users")
-    .update({ auth_user_id: authUserId })
-    .eq("id", data.id);
-    console.info("[auth] linked staff record to auth user", { staffId: data.id, authUserId });
-  } catch (linkError) {
-    console.warn("[auth] failed linking staff record", { staffId: data.id, authUserId, error: linkError });
-  }
-
-  return data;
+  return data ?? null;
 }
 
 export async function getCurrentStaffContext(
@@ -49,62 +40,66 @@ export async function getCurrentStaffContext(
   } = await client.auth.getUser();
 
   if (authError) {
+    const isSessionMissing =
+      (authError as unknown as { __isAuthError?: boolean; message?: string }).__isAuthError &&
+      /auth session missing/i.test(authError.message ?? "");
+    if (isSessionMissing || authError.status === 400) {
+      console.info("[auth] no session while resolving staff context");
+      return { authUserId: null, staffId: null, role: null, email: null, isActive: false };
+    }
     throw authError;
   }
 
   if (!user) {
     console.info("[auth] no authenticated user for staff context");
-    return { authUserId: null, staffId: null, role: null, email: null };
+    return { authUserId: null, staffId: null, role: null, email: null, isActive: false };
   }
 
-  const staffRecord = await client
-    .from("users")
-    .select("id, role")
-    .eq("auth_user_id", user.id)
-    .maybeSingle();
-
-  if (staffRecord.error) {
-    throw staffRecord.error;
-  }
-
-  let record = staffRecord.data ?? null;
-
-  if (!record && user.email) {
-    record = await linkStaffRecord(client, user.email, user.id);
-  }
-
-  const metadataRole = normalizeStaffRole(
-    typeof user.user_metadata?.role === "string" ? user.user_metadata.role : null
-  );
-  const recordRole = normalizeStaffRole(record?.role ?? null);
-  const resolvedRole = recordRole ?? metadataRole;
+  const record = await fetchStaffRecord(client, user.id);
 
   if (!record) {
-    if (metadataRole) {
-      console.warn("[auth] staff record not found, using auth metadata role", {
-        authUserId: user.id,
-        email: user.email ?? null,
-        role: metadataRole,
-      });
-    } else {
-      console.warn("[auth] staff record not found", { authUserId: user.id, email: user.email ?? null });
-    }
+    console.warn("[auth] staff record not mapped to auth user", {
+      authUserId: user.id,
+      email: user.email ?? null,
+    });
+    return { authUserId: user.id, staffId: null, role: null, email: user.email ?? null, isActive: false };
+  }
+
+  const recordRole = normalizeStaffRole(record.role ?? null);
+  if (!recordRole) {
+    console.warn("[auth] staff role missing or invalid", {
+      authUserId: user.id,
+      email: user.email ?? null,
+      staffId: record.id,
+      role: record.role ?? null,
+    });
+  }
+
+  const active = record.is_active === true && !record.deactivated_at;
+  if (!active) {
+    console.warn("[auth] inactive staff attempted access", {
+      authUserId: user.id,
+      email: user.email ?? null,
+      staffId: record.id,
+      deactivated_at: record.deactivated_at,
+    });
   }
 
   console.info("[auth] staff context resolved", {
     authUserId: user.id,
     email: user.email ?? null,
-    staffId: record?.id ?? null,
-    staffRoleInDb: record?.role ?? null,
+    staffId: record.id,
+    staffRoleInDb: record.role ?? null,
     normalizedRecordRole: recordRole,
-    metadataRole,
-    role: resolvedRole ?? null,
+    isActive: active,
+    deactivated_at: record.deactivated_at ?? null,
   });
 
   return {
     authUserId: user.id,
-    staffId: record?.id ?? null,
-    role: resolvedRole ?? null,
-    email: user.email ?? null,
+    staffId: record.id,
+    role: recordRole ?? null,
+    email: record.email ?? user.email ?? null,
+    isActive: active,
   };
 }

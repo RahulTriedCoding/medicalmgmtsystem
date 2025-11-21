@@ -172,7 +172,12 @@ export async function fetchDashboardData(supabase: SupabaseClient): Promise<Dash
     inventoryResult,
   ] = await Promise.all([
     supabase.from("patients").select("id", { count: "exact", head: true }),
-    supabase.from("users").select("id", { count: "exact", head: true }).eq("role", DOCTOR_ROLE),
+    supabase
+      .from("users")
+      .select("id", { count: "exact", head: true })
+      .eq("role", DOCTOR_ROLE)
+      .eq("is_active", true)
+      .is("deactivated_at", null),
     supabase
       .from("appointments")
       .select("id", { count: "exact", head: true })

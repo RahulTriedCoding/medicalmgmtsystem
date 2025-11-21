@@ -1,6 +1,10 @@
 import { cookies } from "next/headers";
 import { createServerClient, type CookieOptions } from "@supabase/ssr";
 
+const isReadonlyCookieError = (error: unknown) =>
+  error instanceof Error &&
+  error.message.includes("Cookies can only be modified");
+
 export const createSupabaseServerClient = async () => {
   const cookieStore = await cookies();
   return createServerClient(
@@ -16,19 +20,22 @@ export const createSupabaseServerClient = async () => {
           try {
             cookieStore.set({ name, value, ...options });
           } catch (error) {
-            console.warn("[auth] failed to set cookie", { name, error });
+            if (!isReadonlyCookieError(error)) {
+              console.warn("[auth] failed to set cookie", { name, error });
+            }
           }
         },
         remove(name: string, options: CookieOptions) {
           try {
             cookieStore.set({ name, value: "", ...options, maxAge: 0 });
           } catch (error) {
-            console.warn("[auth] failed to remove cookie", { name, error });
+            if (!isReadonlyCookieError(error)) {
+              console.warn("[auth] failed to remove cookie", { name, error });
+            }
           }
         },
       },
     }
   );
 };
-
 

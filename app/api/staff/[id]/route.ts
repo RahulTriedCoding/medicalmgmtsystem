@@ -3,7 +3,6 @@ import { z } from "zod";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { STAFF_ROLES, normalizeStaffRole } from "@/lib/staff/types";
 import { deleteStaffContact, upsertStaffContact, getStaffContacts } from "@/lib/staff/store";
-import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import { requireStaffRole } from "@/lib/staff/permissions";
 
 type ParamsShape = Promise<{ id?: string }>;
@@ -32,7 +31,7 @@ async function resolveId(params: ParamsShape) {
   return parsed.data.id;
 }
 
-const STAFF_COLUMNS = "id, full_name, email, role, auth_user_id, created_at";
+const STAFF_COLUMNS = "id, full_name, email, role, auth_user_id, created_at, is_active, deactivated_at";
 
 export async function PATCH(req: Request, { params }: { params: ParamsShape }) {
   const supabase = await createSupabaseServerClient();
@@ -108,29 +107,42 @@ export async function DELETE(_: Request, { params }: { params: ParamsShape }) {
     return NextResponse.json({ error: "You cannot remove yourself" }, { status: 400 });
   }
 
-  const { data, error } = await supabase
+  const { data: existing, error: lookupError } = await supabase
     .from("users")
-    .delete()
+    .select("id, auth_user_id, is_active, deactivated_at")
     .eq("id", id)
-    .select("id, auth_user_id")
     .maybeSingle();
 
-  if (error) {
-    return NextResponse.json({ error: error.message }, { status: 400 });
+  if (lookupError) {
+    return NextResponse.json({ error: lookupError.message }, { status: 400 });
   }
 
-  if (!data) {
+  if (!existing) {
     return NextResponse.json({ error: "Not found" }, { status: 404 });
+  }
+
+  if (!existing.auth_user_id) {
+    console.error("[staff] revoke aborted - missing auth_user_id", { staffId: id });
+    return NextResponse.json(
+      { error: "Staff account is not linked to auth and cannot be revoked automatically." },
+      { status: 400 }
+    );
+  }
+
+  const deactivatedAt = new Date().toISOString();
+  const { error: deactivateError } = await supabase
+    .from("users")
+    .update({
+      is_active: false,
+      deactivated_at: deactivatedAt,
+    })
+    .eq("id", id);
+
+  if (deactivateError) {
+    return NextResponse.json({ error: deactivateError.message }, { status: 400 });
   }
 
   await deleteStaffContact(id, supabase);
 
-  if (data?.auth_user_id) {
-    const adminClient = createSupabaseAdminClient();
-    if (adminClient) {
-      await adminClient.auth.admin.deleteUser(data.auth_user_id).catch(() => {});
-    }
-  }
-
-  return NextResponse.json({ ok: true });
+  return NextResponse.json({ ok: true, revoked: true });
 }

@@ -48,6 +48,8 @@ export async function POST(req: Request) {
       .select("id")
       .eq("id", parsed.data.doctor_id)
       .eq("role", "doctor")
+      .eq("is_active", true)
+      .is("deactivated_at", null)
       .maybeSingle(),
   ]);
 

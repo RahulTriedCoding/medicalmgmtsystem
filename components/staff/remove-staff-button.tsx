@@ -4,12 +4,20 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 
-export function RemoveStaffButton({ id, name }: { id: string; name: string }) {
+type RemoveStaffButtonProps = {
+  id: string;
+  name: string;
+  disabled?: boolean;
+};
+
+export function RemoveStaffButton({ id, name, disabled }: RemoveStaffButtonProps) {
   const [loading, setLoading] = useState(false);
   const router = useRouter();
+  const isBusy = loading || disabled;
 
   async function onRemove() {
-    const confirmed = window.confirm(`Remove ${name}? They will lose access.`);
+    if (isBusy) return;
+    const confirmed = window.confirm(`Revoke access for ${name}? This immediately disables their login.`);
     if (!confirmed) return;
     setLoading(true);
     const res = await fetch(`/api/staff/${id}`, { method: "DELETE" });
@@ -17,11 +25,11 @@ export function RemoveStaffButton({ id, name }: { id: string; name: string }) {
 
     if (!res.ok) {
       const payload = await res.json().catch(() => ({}));
-      toast.error(payload?.error ?? "Failed to remove staff");
+      toast.error(payload?.error ?? "Failed to revoke access");
       return;
     }
 
-    toast.success("Staff removed");
+    toast.success("Access revoked");
     router.refresh();
   }
 
@@ -29,9 +37,9 @@ export function RemoveStaffButton({ id, name }: { id: string; name: string }) {
     <button
       className="text-xs text-rose-300 underline transition hover:text-rose-200 disabled:opacity-50"
       onClick={onRemove}
-      disabled={loading}
+      disabled={isBusy}
     >
-      Remove
+      Revoke access
     </button>
   );
 }

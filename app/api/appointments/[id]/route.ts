@@ -89,6 +89,8 @@ export async function PATCH(req: Request, { params }: { params: ParamsShape }) {
       .select("id")
       .eq("id", updates.doctor_id)
       .eq("role", "doctor")
+      .eq("is_active", true)
+      .is("deactivated_at", null)
       .maybeSingle();
     if (error) {
       return NextResponse.json({ error: error.message }, { status: 400 });

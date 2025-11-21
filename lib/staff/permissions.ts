@@ -15,20 +15,33 @@ export async function requireStaffRole(
     return { response: NextResponse.json({ error: "Unauthorized" }, { status: 401 }) };
   }
 
+  if (!context.staffId) {
+    console.warn("[auth] unauthorized request - staff record missing", {
+      authUserId: context.authUserId,
+      email: context.email ?? null,
+    });
+    return { response: NextResponse.json({ error: "Unauthorized" }, { status: 401 }) };
+  }
+
+  if (!context.isActive) {
+    console.warn("[auth] inactive staff attempted access", {
+      authUserId: context.authUserId,
+      email: context.email ?? null,
+      staffId: context.staffId,
+    });
+    return { response: NextResponse.json({ error: "Forbidden" }, { status: 403 }) };
+  }
+
   const role = context.role ?? null;
   if (!role || !allowed.includes(role)) {
     console.warn("[auth] forbidden access attempt", {
       authUserId: context.authUserId,
       email: context.email ?? null,
-      staffId: context.staffId,
+      staffId: context.staffId ?? null,
       role,
       allowed,
     });
     return { response: NextResponse.json({ error: "Forbidden" }, { status: 403 }) };
-  }
-
-  if (!context.staffId) {
-    console.warn("[auth] staff id missing for authorized user", { authUserId: context.authUserId, role });
   }
 
   console.info("[auth] staff access granted", {

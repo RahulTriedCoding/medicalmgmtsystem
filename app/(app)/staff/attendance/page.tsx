@@ -31,6 +31,8 @@ export default async function StaffAttendancePage() {
   const { data: staffRows, error: staffError } = await supabase
     .from("users")
     .select("id, full_name, role")
+    .eq("is_active", true)
+    .is("deactivated_at", null)
     .order("full_name", { ascending: true });
 
   if (staffError) {

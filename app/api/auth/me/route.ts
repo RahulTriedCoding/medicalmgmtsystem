@@ -7,13 +7,11 @@ export async function GET() {
   const supabase = await createSupabaseServerClient();
   const context = await getCurrentStaffContext(supabase);
 
-  if (!context.authUserId) {
+  if (!context.authUserId || !context.staffId || !context.role || !context.isActive) {
     return NextResponse.json({ user: null });
   }
 
-  if (context.staffId) {
-    await upsertStaffContact(context.staffId, undefined, false, supabase).catch(() => {});
-  }
+  await upsertStaffContact(context.staffId, undefined, false, supabase).catch(() => {});
 
   return NextResponse.json({
     user: {

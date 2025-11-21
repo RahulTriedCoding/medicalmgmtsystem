@@ -5,6 +5,7 @@ import { StaffRoleSelect } from "@/components/staff/staff-role-select";
 import { RemoveStaffButton } from "@/components/staff/remove-staff-button";
 import { StaffRole, normalizeStaffRole } from "@/lib/staff/types";
 import { getStaffContacts } from "@/lib/staff/store";
+import { getCurrentStaffContext } from "@/lib/staff/current";
 
 type StaffRow = {
   id: string;
@@ -15,6 +16,8 @@ type StaffRow = {
   created_at: string;
   auth_user_id: string | null;
   pending: boolean;
+  is_active: boolean;
+  deactivated_at: string | null;
 };
 
 function formatDate(value: string) {
@@ -30,6 +33,8 @@ type RawStaffRow = {
   role?: string | null;
   created_at?: string | null;
   auth_user_id?: string | null;
+  is_active?: boolean | null;
+  deactivated_at?: string | null;
 };
 
 function isRawStaffRow(row: unknown): row is RawStaffRow {
@@ -46,26 +51,16 @@ function coerceStaff(rows: unknown[]): StaffRow[] {
     created_at: row.created_at ?? new Date().toISOString(),
     auth_user_id: row.auth_user_id ?? null,
     pending: false,
+    is_active: row.is_active !== false && !row.deactivated_at,
+    deactivated_at: row.deactivated_at ?? null,
   }));
 }
 
 export default async function StaffPage() {
   const supabase = await createSupabaseServerClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const staffContext = await getCurrentStaffContext(supabase);
 
-  let role: string | null = null;
-  if (user) {
-    const { data: staffRecord } = await supabase
-      .from("users")
-      .select("role")
-      .eq("auth_user_id", user.id)
-      .maybeSingle();
-    role = staffRecord?.role ?? null;
-  }
-
-  if (role !== "admin") {
+  if (staffContext.role !== "admin") {
     return (
       <div className="space-y-2">
         <h1 className="text-xl font-semibold">Staff & roles</h1>
@@ -76,7 +71,7 @@ export default async function StaffPage() {
 
   const { data, error } = await supabase
     .from("users")
-    .select("id, full_name, email, role, created_at, auth_user_id")
+    .select("id, full_name, email, role, created_at, auth_user_id, is_active, deactivated_at")
     .order("full_name", { ascending: true });
 
   const contacts = await getStaffContacts(supabase);
@@ -132,21 +127,28 @@ export default async function StaffPage() {
                   <td className="p-2 font-medium">{member.full_name}</td>
                   <td className="p-2">{member.email}</td>
                   <td className="p-2">
-                    <StaffRoleSelect id={member.id} role={member.role} />
+                    <StaffRoleSelect id={member.id} role={member.role} disabled={!member.is_active} />
                   </td>
                   <td className="p-2">{member.phone ?? "—"}</td>
                   <td className="p-2">
-                    <span
-                      className={`rounded-full px-2 py-0.5 text-xs ${
-                        member.pending ? "bg-amber-100 text-amber-800" : "bg-emerald-100 text-emerald-800"
-                      }`}
-                    >
-                      {member.pending ? "Invite pending" : "Active"}
-                    </span>
+                    {(() => {
+                      const isRevoked = !!member.deactivated_at || !member.is_active;
+                      const classes = isRevoked
+                        ? "bg-slate-200 text-slate-700 dark:bg-slate-800 dark:text-slate-200"
+                        : member.pending
+                          ? "bg-amber-100 text-amber-800 dark:bg-amber-500/10 dark:text-amber-100"
+                          : "bg-emerald-100 text-emerald-800 dark:bg-emerald-500/10 dark:text-emerald-100";
+                      const label = isRevoked ? "Access revoked" : member.pending ? "Invite pending" : "Active";
+                      return (
+                        <span className={`rounded-full px-2 py-0.5 text-xs ${classes}`}>
+                          {label}
+                        </span>
+                      );
+                    })()}
                   </td>
                   <td className="p-2">{formatDate(member.created_at)}</td>
                   <td className="p-2">
-                    <RemoveStaffButton id={member.id} name={member.full_name} />
+                    <RemoveStaffButton id={member.id} name={member.full_name} disabled={!member.is_active} />
                   </td>
                 </tr>
               ))

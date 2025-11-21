@@ -25,7 +25,7 @@ async function resolveStaffFromToken(
 
   const { data, error } = await adminClient
     .from("users")
-    .select("id, role")
+    .select("id, role, is_active, email")
     .eq("auth_user_id", authUserId)
     .maybeSingle();
 
@@ -37,7 +37,13 @@ async function resolveStaffFromToken(
     return null;
   }
 
-  return { authUserId, staffId: data.id ?? null, role: data.role ?? null, email: null };
+  return {
+    authUserId,
+    staffId: data.id ?? null,
+    role: data.role ?? null,
+    email: data.email ?? null,
+    isActive: Boolean(data.is_active),
+  };
 }
 
 export async function POST(req: Request) {
@@ -55,7 +61,7 @@ export async function POST(req: Request) {
     ? await resolveStaffFromToken(accessToken, adminClient)
     : await getCurrentStaffContext(supabase);
 
-  if (!staff || staff.role !== "admin") {
+  if (!staff || staff.role !== "admin" || !staff.isActive) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 
